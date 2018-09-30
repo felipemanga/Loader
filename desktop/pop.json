@@ -1,0 +1,6 @@
+{
+    "out":"../BUILD/desktop.pop",
+    "tags":[
+	["codechunk", "0x10002000", "BUILD/DESKTOP.bin"]
+    ]
+}

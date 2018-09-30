@@ -1,0 +1,6 @@
+{
+    "out":"../BUILD/boot.pop",
+    "tags":[
+	["code", "BUILD/boot.bin"]
+    ]
+}

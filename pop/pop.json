@@ -1,0 +1,7 @@
+{
+    "out":"../BUILD/desktop/pop.pop",
+    "tags":[
+	["img_36x36_4bpp", "icon.png"],	
+	["codechunk", "0x10002000", "BUILD/POP.bin"]
+    ]
+}

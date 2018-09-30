@@ -1,0 +1,2 @@
+#!/bin/sh
+cp ~/Projects/Pokitto/extder/BUILD/* /media/fmanga/boot/loader/ -r && ls /media/fmanga/boot/loader/ && PokittoEmu ~/Projects/Pokitto/extder/bootloader/BUILD/Loader.bin -I ~/Projects/Pokitto/pokittoemu/boot.img

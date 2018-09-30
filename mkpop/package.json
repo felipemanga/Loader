@@ -1,0 +1,18 @@
+{
+  "name": "pop",
+  "version": "1.0.0",
+  "description": "POP file maker",
+  "main": "pop.js",
+  "scripts": {
+    "test": "pop.js"
+  },
+  "keywords": [
+    "Pokitto",
+    "POP"
+  ],
+  "author": "FManga",
+  "license": "MIT",
+  "dependencies": {
+    "canvas": "^1.6.12"
+  }
+}
