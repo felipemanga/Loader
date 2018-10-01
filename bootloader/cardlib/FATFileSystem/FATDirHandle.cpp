@@ -97,6 +97,10 @@ void FATDirHandle::seekdir(off_t location) {
     }    
 
     FILINFO finfo;
+#if _USE_LFN
+    finfo.lfname = cur_entry.d_name;
+    finfo.lfsize = sizeof(cur_entry.d_name);
+#endif // _USE_LFN
     if( location && f_readdir(&dir, &finfo) == FR_OK ) location--;
     while( location-- && dir_next(&dir, 0) == FR_OK && dir_next(&dir, 0) == FR_OK ) ;
 }
