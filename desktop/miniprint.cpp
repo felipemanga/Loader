@@ -80,7 +80,7 @@ void select_font(const unsigned char * f) {
  * x must be a multiple of 8
  */
 void print_char(unsigned char x, unsigned char y, unsigned char c) {
-    if( font[3] )
+    if( font[3] && c >= 'a' && c <= 'z')
 	c &= 0xdf;
     c -= font[2];
     drawChar(x,y,font,c);

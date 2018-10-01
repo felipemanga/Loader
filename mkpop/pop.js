@@ -56,13 +56,15 @@ function img4bpp( path, w, h ){
     const pixel = [0,0,0];
     const error = [0,0,0];
     const infl = [];
-    
+
+    let line = '';
+
     for( let i=0; i<buf.length; ++i ){
 	let j;
 
-	nerr[0] = buf[i++]	
-	nerr[1] = buf[i++]	
-	nerr[2] = buf[i++]	
+	nerr[2] = buf[i++];
+	nerr[1] = buf[i++];
+	nerr[0] = buf[i++];
 
 	pixel[0] = nerr[0] + error[0];
 	pixel[1] = nerr[1] + error[1];
@@ -77,9 +79,12 @@ function img4bpp( path, w, h ){
 	    let dist = (pixel[0]-palette[j][0])*(pixel[0]-palette[j][0]) +
 		(pixel[1]-palette[j][1])*(pixel[1]-palette[j][1]) +
 		(pixel[2]-palette[j][2])*(pixel[2]-palette[j][2]);
+
 	    if( dist < mindist ){
 		minind = j;
 		mindist = dist;
+		if( dist == 0 )
+		    break;
 	    }
 	}
 /*
@@ -88,6 +93,12 @@ function img4bpp( path, w, h ){
 	error[2] = nerr[2] - palette[minind][2];
 */
 	infl.push( minind );
+
+	line += minind.toString(16);
+	if( line.length == w ){
+	    console.log(line);
+	    line = '';
+	}
 
     }
 
