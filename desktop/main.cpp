@@ -29,10 +29,9 @@ int32_t x, y, tx, ty;
 struct Item {
     uint8_t icon[ 36*18 ];
     char name[ 36 ];
-    long off;
+    bool loaded;
 
     bool load( DIR *d, long off ){
-	this->off = off;
 	FS.seekdir( d, off );
 	return load( FS.readdir( d ), false );
     }
@@ -156,11 +155,43 @@ void draw(){
 }
 
 bool shiftRight;
+char buf[256];
+bool startSelection( KAPI *kapi ){
+    
+    char *bufp = buf;
+    const char *dir = path;
+    while( *dir ) *bufp++ = *dir++;
+    *bufp++ = '/';
+	    
+    DIR *d = FS.openddir( path );
+    if( !d ) return false;
+
+    FS.seekdir(d, selection);
+    dirent *e = FS.readdir(d);
+
+    for( uint32_t i=0; e && e->d_name[i]; ++i )
+	*bufp++ = e->d_name[i];
+    *bufp++ = 0;
+    
+    FS.closedir(d);
+
+    showError("exited");
+    
+    if( e )
+	kapi->createProcess( buf );
+
+    return true;
+}
 
 void showModes( KAPI *kapi ){
     if( tx == x ){
 	int32_t fileId, itemId;
 	bool moved = true;
+	
+	if( isPressedA() && items[selection].loaded ){
+	    startSelection( kapi );
+	    return;
+	}
 	
 	if( shiftRight ){
 	    
@@ -203,8 +234,15 @@ void showModes( KAPI *kapi ){
 
 	if( moved ){
 	    DIR *d = FS.openddir( path );
-	    items[itemId].load( d, fileId );
-	    items[itemId].off = fileId;
+
+	    if( !items[itemId].load( d, fileId ) ){
+		items[itemId].loaded = false;
+		uint8_t *p = items[itemId].icon;
+		for( int i=36*18; i; --i )
+		    *p++ = 0;
+	    }else
+		items[itemId].loaded = true;
+
 	    FS.closedir(d);
 	}
 	
@@ -254,16 +292,15 @@ void init( KAPI *kapi ){
 	return;
     }
 
-    FS.closedir(d);
-    d = FS.openddir( path );
-
     int cfile = fileCount - 1;
     for( int i=0; i<maxitem; ++i ){
 	if( !items[i].load( d, cfile++ ) ){
 	    FS.closedir( d );
 	    return;
-	}
-	if( cfile >= fileCount ) cfile = 0;
+	}else items[i].loaded = true;
+
+	if( cfile >= fileCount )
+	    cfile = 0;
     }
     start = 0;
     FS.closedir( d );

@@ -46,7 +46,7 @@ KAPI *kapi = &_kapi;
 
 void killProcess( uint32_t pid ){
 
-    if( pid == 0 ) return;
+    if( pid == BAD_PID ) return;
 
     pid &= (MAX_PID<<1) - 1;
     pid--;
@@ -96,7 +96,7 @@ void loop(){
 
 	uint32_t live = 0;
 	for( uint32_t i=0; i<MAX_PID; ++i ){
-	    if( processes[i].api ){
+	    if( processes[i].api && processes[i].api->run ){
 		activepid = processes[i].pid;
 		live = 1;
 		processes[i].api->run( kapi );
@@ -220,6 +220,7 @@ void *loadPOP( const char *fileName, bool exec, void *arg ){
     
     if( exec ){
 	targetAddr |= 1;
+	while( targetAddr < 0x10000000 );
 	using callType = uint32_t (*)( void * );
 	callType call = (callType) targetAddr;
 	targetAddr = call(arg);

@@ -156,9 +156,9 @@ void vline( uint32_t x, uint32_t y, uint32_t h, uint32_t color ){
     uint8_t mask = 0xF;
 
     if( x & 1 ){
-	color <<= 4;
+	mask <<= 4;	
     }else{
-	mask <<= 4;
+	color <<= 4;
     }
     
     while( h-- ){
@@ -214,7 +214,7 @@ void fillRect( int32_t x, int32_t y, uint32_t w, uint32_t h, uint32_t color ){
     }
 
     if( w&1 ){
-	vline( x+w, y, h, color );
+	vline( x+w-1, y, h, color );
 	w--;
     }
 
@@ -233,6 +233,8 @@ void drawBitmap(int x, int y, int w, int h, const unsigned char *bitmap){
     if( x <= -w || x >= width || y <= -h || y >= height )
 	return;
 
+    x &= ~1;
+    
     if( y < 0 ){
 	bitmap -= y*(w>>1);
 	h += y*(w>>1);
@@ -246,6 +248,7 @@ void drawBitmap(int x, int y, int w, int h, const unsigned char *bitmap){
     if( x < 0 ){
 	skip = -x/2;
 	bitmap += skip;
+	w += x;
 	x = 0;
     }
 
