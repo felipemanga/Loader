@@ -1,2 +1,3 @@
 #!/bin/sh
-cp ~/Projects/Pokitto/extder/BUILD/* /media/fmanga/boot/loader/ -r && ls /media/fmanga/boot/loader/ && PokittoEmu ~/Projects/Pokitto/extder/bootloader/BUILD/Loader.bin -I ~/Projects/Pokitto/pokittoemu/boot.img -e 0x39000 -w 4
+cp ~/Projects/Pokitto/extder/BUILD/* /media/fmanga/boot/loader/ -r && ls /media/fmanga/boot/loader/ && PokittoEmu ~/Projects/Pokitto/extder/bootloader/BUILD/Loader.bin -I ~/Projects/Pokitto/pokittoemu/boot.img
+#-e 0x39000 -w 4

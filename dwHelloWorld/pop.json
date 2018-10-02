@@ -1,0 +1,6 @@
+{
+    "out":"../BUILD/desktopwidgets/dwHelloWorld",
+    "tags":[
+	["codechunk", "0x10005000", "./BUILD/dwHelloWorld.bin"]
+    ]
+}

@@ -13,7 +13,7 @@ struct Process {
     uint32_t pid;
 } processes[MAX_PID];
 uint32_t nextPID ;
-uint8_t procmap[16];
+uint8_t procmap[32];
 uint8_t ipcbuffer[256];
 char b[256];
 uint32_t killedpid;
@@ -30,7 +30,7 @@ uint32_t hash( const char *str ){
     return h;
 }
 
-void *loadPOP( const char *fileName, bool exec, void *arg );
+uint8_t loadPOP( const char *fileName, bool exec, void *arg );
 
 ProcessHandle createProcess( const char *path );
 void killProcess( uint32_t pid );
@@ -43,19 +43,26 @@ KAPI _kapi = {
 };
 
 KAPI *kapi = &_kapi;
+void *callerAPI;
 
 void killProcess( uint32_t pid ){
 
-    if( pid == BAD_PID ) return;
+//    if( pid == BAD_PID ) return;
 
+/*
     pid &= (MAX_PID<<1) - 1;
     pid--;
+*/
+    if( pid >= MAX_PID || processes[pid].api == nullptr ) return;
 
-    if( pid >= MAX_PID ) return;
+    DBG(0x1000 + pid);
 
-    processes[ procmap[pid] ].api = nullptr;
+    if( callerAPI == processes[ pid ].api )
+	callerAPI = kapi;
+
+    processes[ pid ].api = nullptr;
     
-    for( uint32_t j=0; j<16; ++j ){
+    for( uint32_t j=0; j<32; ++j ){
 	if( procmap[j] == pid ){
 	    procmap[j] = BAD_PID;
 	    killedpid = pid;
@@ -70,7 +77,6 @@ char procToLoad[256];
 
 ProcessHandle createProcess( const char *path ){
     uint32_t h = hash(path);
-
     if( h == procToLoadHash && procToLoadState != ProcessState::ready )
 	return ProcessHandle{ procToLoadState };
 
@@ -99,14 +105,20 @@ void loop(){
 	    if( processes[i].api && processes[i].api->run ){
 		activepid = processes[i].pid;
 		live = 1;
+		void *api = processes[i].api;
 		processes[i].api->run( kapi );
 
 		if( procToLoadState == ProcessState::pending ){
 
-		    if( loadPOP( procToLoad, true, kapi ) ){
+		    uint8_t pid = loadPOP( procToLoad, true, api );
+
+		    if( pid != BAD_PID ){
 			procToLoadState = ProcessState::ready;
+			DBG(11);
+			DBG(pid);
 		    }else{
 			procToLoadState = ProcessState::error;
+			DBG(12);
 		    }
 	    
 		}
@@ -114,7 +126,7 @@ void loop(){
 	    }
 	}
     
-	if( !live && !loadPOP( "loader/desktop.pop", true, kapi ) ){
+	if( !live && loadPOP( "loader/desktop.pop", true, kapi ) == BAD_PID ){
 	    break;
 	}
 
@@ -125,7 +137,7 @@ void loop(){
 }
 
 int main () {
-    for( uint32_t i=0; i<16; ++i )
+    for( uint32_t i=0; i<32; ++i )
 	procmap[i] = BAD_PID;
     // ((uint32_t *)0xA0002000)[1] &= ~(1<<9);
     loop();
@@ -169,18 +181,28 @@ void copyCode( uint32_t addr, uint32_t count, FILE *f, uint8_t pid ){
     
 }
 
-void *loadPOP( const char *fileName, bool exec, void *arg ){
+uint8_t loadPOP( const char *fileName, bool exec, void *arg ){
+    callerAPI = arg;
+
     FS.init("sd");
     FILE *f = FS.fopen( fileName, "rb" );
-    if( !f ) return NULL;
+    if( !f ){
+	DBG(13);
+	return BAD_PID;
+    }
 
     uint32_t pid = 0;
     while( processes[pid].api && pid < MAX_PID )
 	pid++;
 
+    if( pid == MAX_PID ){
+	DBG(18);
+	return BAD_PID;
+    }
+
     uint32_t h = hash( fileName );
 
-    uint32_t targetAddr = 0;
+    uint32_t targetAddr = 0, canExec = false;
     while( !FS.feof(f) ){
 	
 	struct{
@@ -198,12 +220,18 @@ void *loadPOP( const char *fileName, bool exec, void *arg ){
 	case TAG_CODE:
 	    FS.fseek( f, -16, SEEK_CUR );
 	    copyCode( targetAddr, -1, f, pid );
+	    canExec = true;
 	    break;
 	    
 	case TAG_CODECHUNK:
 	{
-	    FS.fread( &targetAddr, 4, 1, f );
+	    if( FS.fread( &targetAddr, 4, 1, f ) != 4 ){
+		DBG(14);
+		FS.fclose(f);
+		return BAD_PID;
+	    }
 	    copyCode( targetAddr, tag.size-4, f, pid );
+	    canExec = true;
 	    break;
 	}
 	
@@ -215,20 +243,27 @@ void *loadPOP( const char *fileName, bool exec, void *arg ){
 
     FS.fclose(f);
 
+    if( !canExec )
+	return BAD_PID;
+
     if( exec && targetAddr == 0 )
 	*((uint32_t*)0xE000ED0C) = 0x05FA0004; //issue system reset
     
     if( exec ){
+	if( targetAddr < 0x10000000 ){
+	    DBG(18);
+	    DBG(targetAddr);
+	    return BAD_PID;
+	}
+
 	targetAddr |= 1;
-	while( targetAddr < 0x10000000 );
 	using callType = uint32_t (*)( void * );
 	callType call = (callType) targetAddr;
-	targetAddr = call(arg);
-	processes[pid].api = (PAPI *) targetAddr;
+	processes[pid].api = (PAPI *) call( callerAPI );
 	processes[pid].hash = h;
-	processes[pid].pid = pid + 1 + (nextPID++ << 4);
+	processes[pid].pid = pid; // pid + 1 + (nextPID++ << 4);
     }
 
-    return (void *) targetAddr;
+    return pid;
 }
 

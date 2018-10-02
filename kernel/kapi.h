@@ -3,6 +3,10 @@
 #include <cstdint>
 #include "../bootloader/fsapi.h"
 
+
+// #define DBG(value)
+#define DBG(value)	((volatile uint32_t *) 0x400483F4)[0] = uint32_t(value)
+
 struct KAPI;
 
 struct PAPI {

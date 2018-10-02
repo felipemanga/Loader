@@ -31,7 +31,7 @@ struct FSAPI {
     long (* const ftell)(FILE *);
     int (* const fseek)(FILE *, long, int);
     size_t (* const fwrite)(const void *, size_t, size_t, FILE *);
-    DIR * (* const openddir)( const char * );
+    DIR * (* const opendir)( const char * );
     dirent *(* const readdir)( DIR * );
     long (*telldir)( DIR *d );
     void (*seekdir)( DIR *d, long off );
