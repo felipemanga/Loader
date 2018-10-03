@@ -1,0 +1,67 @@
+* Loader size comparissons
+| Change           | bin size |   Diff |
+|------------------+----------+--------|
+| Vanilla          |   0x6564 |      0 |
+| PVCOPY           |   0x644C |    280 |
+| no-tabs          |   0x43A8 |   8636 |
+| simple buttons   |   0x4290 |   8916 |
+| SDFilesystem     |   0x9708 | -12708 |
+| no-crc           |   0x933C | -11736 |
+| sdfs+print       |   0x7890 |  -4908 |
+| no-print         |   0x72d8 |  -3444 |
+| no-fattime       |   0x64D0 |    260 |
+| load file to ram |   0x6A10 |  -1196 |
+
+* RAM layout
+|             | Section | Size |
+|-------------+---------+------|
+| Boot        | SRAM1   | 2kb  |
+| Mode1       | SRAM2   | 2kb  |
+| File list   | SRAM0   | 4kb  |
+| Parser      | SRAM0   | 8kb  |
+| Framebuffer | SRAM0   | 10kb |
+|             |         |      |
+
+
+* Desk.Top - a micro OS for Pokitto
+** Microkernel
+*** Main features
+**** Bootcode interpretor
+**** system+SPI+LCD+SD initialization (bootcode)
+**** PokittoEXE format parser/loader
+*** Layout of boot.bin
+**** 0x00000000: OS installer app
+**** 0x--------: Kernel app
+***** NVIC
+***** API struct
+***** Code
+**** 0x0003FFF4: BootableBlock
+***** loa.der compatible
+***** version = 0?
+*** Boot process
+**** Initialization
+***** system startup, similar to system_LPC1168x.c
+** PokittoEXE File Format - (.POK?)
+*** 4 - Magic: PX01
+*** 2 - Section Count
+*** 2 - Reserved
+*** X Sections
+**** 1 - Section Type
+***** 0 - padding
+***** 1 - code
+***** 2 - library
+***** 3 - bootcode
+***** 4 - HAT list
+***** 5 - long name (text)
+***** 6 - author (text)
+***** 7 - description (text)
+***** 8 - screenshot 220x176
+***** 9 - title image 210x10
+***** 10- icon 24x24
+**** 4 - Section Length
+*** Code section
+**** 4 byte count
+**** target address
+*** Library section
+**** 4 byte count
+**** target address

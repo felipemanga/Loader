@@ -1,0 +1,37 @@
+#!/bin/sh
+
+rm -r BUILD/*
+mkdir BUILD/desktop
+mkdir BUILD/desktopwidgets
+
+echo "*** BOOTLOADER ***"
+cd bootloader
+make clean && make
+cd ..
+
+echo "*** KERNEL ***"
+cd kernel
+make clean && make
+cd ..
+
+echo "*** DESKTOP ***"
+cd desktop
+make clean && make
+cd ..
+
+echo "*** POP ***"
+cd pop
+make clean && make
+cd ..
+
+echo "*** DWHELLOWORLD ***"
+cd dwHelloWorld
+make clean && make
+cd ..
+
+echo "*** DWTOTEM ***"
+cd dwTotem
+make clean && make
+cd ..
+
+# ./run
