@@ -48,13 +48,13 @@ bool isAlive( uint32_t pid ){
 void killProcess( uint32_t lpid ){
 
     uint8_t pid = lpid & 0xFF;
-    if( lpid >= MAX_PID || processes[lpid].pid != lpid )
+    if( pid >= MAX_PID || processes[pid].pid != lpid )
 	return;
 
     DBG(12);
     DBG(lpid);
 
-    if( callerPID == processes[ pid ].pid )
+    if( callerPID == lpid )
 	callerPID = BAD_PID;
 
     if( processes[ pid ].api ){
@@ -109,7 +109,6 @@ void loop(){
 	for( uint32_t i=0; i<MAX_PID; ++i ){
 	    if( processes[i].api && processes[i].api->run ){
 		live = 1;
-		void *api = processes[i].api;
 		processes[i].api->run( kapi );
 
 		if( procToLoadState == ProcessState::pending ){
