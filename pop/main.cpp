@@ -2,22 +2,22 @@
 #include "../kernel/kapi.h"
 #include "../kernel/tagtype.h"
 #include "api.h"
-#include "lcd.hpp"
 #include "miniprint.h"
 #include "font8x8.h"
+#include "./lcd.hpp"
 
-const char *path = "/";
-const uint8_t bgcolor = 0;
-uint8_t hlcolor;
+using namespace DESKTOP;
+
+const char *widgetspath = "loader/desktopwidgets";
+const char *path = "loader/desktop";
 const uint8_t maxitem = 4;
-const char *errmsg = "pizza";
+const char *errmsg;
 
 void error( KAPI *kapi ){
-    drawcolor++;
     cursor_x = 0;
     cursor_y = 0;
     print(errmsg);
-    lcdRefresh();
+    lcdRefresh();    
 }
 
 void showError( const char *m ){
@@ -26,23 +26,19 @@ void showError( const char *m ){
 }
 
 int32_t x, y, tx, ty;
+uint8_t hlcolor;
 
 struct Item {
     uint8_t icon[ 36*18 ];
     char name[ 36 ];
-    long off;
+    bool loaded, isPop;
 
-    bool load( DIR *d, long off ){
-	this->off = off;
+    bool load( DIR *d, int32_t off ){
 	FS.seekdir( d, off );
-	return load( FS.readdir( d ), false );
-    }
-
-    bool load( dirent *e, bool quick ){
-	if( !e || !(e->d_type & DT_ARC) ){
-	    showError("Error: 1+2=5");
+	
+	dirent *e = FS.readdir( d );
+	if( !e || !(e->d_type & DT_ARC) )
 	    return false;
-	}
 
 	char buf[256], *bufp = buf, *namep = name;
 	const char *dir = path;
@@ -50,9 +46,10 @@ struct Item {
 	while( *dir ) *bufp++ = *dir++;
 	*bufp++ = '/';
 	
-	bool isPop = false;
+	isPop = false;
 	for( uint32_t i=0; e->d_name[i]; ++i ){
 	    *bufp++ = *namep++ = e->d_name[i];
+	    if( i>=35 ) namep--;
 	    if( e->d_name[i] == '.' &&
 		(e->d_name[i+1]&0xDF) == 'P' &&
 		(e->d_name[i+2]&0xDF) == 'O' &&
@@ -62,14 +59,9 @@ struct Item {
 	    }
 	}
 
-	if( !isPop ){
-	    showError("!pop");
-	    return false;
-	}
-	
 	*bufp++ = *namep++ = 0;
 
-	if( quick )
+	if( !isPop )
 	    return true;
 
 	FILE *f = FS.fopen( buf, "rb" );
@@ -99,11 +91,8 @@ struct Item {
     
 } items[maxitem];
 uint32_t start;
-
 int32_t fileCount;
-
-int32_t selection, prevselection;
-int32_t hlx;
+int32_t selection;
 
 int prev( int i ){
     i--;
@@ -113,58 +102,123 @@ int prev( int i ){
 
 int next( int i ){
     i++;
-    if( i>sizeof(items)/sizeof(items[0])-1 ) i=0; // no modulo!
+    if( uint32_t(i)>sizeof(items)/sizeof(items[0])-1 ) i=0; // no modulo!
     return i;
 }
 
-bool loadFiles( DIR *d ){
+bool countFiles( DIR *d ){
 
-    Item &scratch = items[0];
-    for( fileCount=0; dirent *e = FS.readdir( d ); ){
-	if( scratch.load( e, true ) )
-	    fileCount++;
-    }
-
+    for( fileCount=0; FS.readdir( d ); fileCount++ ){;}
     return fileCount > 0;
 
 }
 
-void draw(){
+bool stopped(){
+    return x == tx && y == ty;
+}
+
+bool draw(){
+    bool ret = stopped();
+
+    lcdRefresh();
+    api.clear();
     
-    fillRect( 0,  0, width, height, bgcolor );
-    
-    if( x == tx ){
-	fillRect( 35, 25, 38, 38, hlcolor++ );
-	
-	cursor_x = 2*40+20-45;
-	Item &sel = items[next(start)];
-	for( int i=0; sel.name[i]; ++i )
-	    cursor_x -= 2;
-	cursor_y = 18;
-	print( sel.name );
+    if( ret ){
+	fillRect(
+	    api.itemStrideX+api.itemOffsetX-1,
+	    api.itemStrideY+api.itemOffsetY-1,
+	    38, 38, hlcolor++
+	    );
     }
 
 
     for( int i=0, c=start; i<maxitem; ++i, c=next(c) ){
-	drawBitmap( (i+1)*40+2-45+x, 26, 36, 36, items[c].icon );
+	api.drawBitmap(
+	    i*api.itemStrideX+api.itemOffsetX+x,
+	    i*api.itemStrideY+api.itemOffsetY+y,
+	    36, 36, items[c].icon
+	    );
     }
 
-    if( x < tx ) x++;
-    else if( x > tx ) x--;
-    if( x == tx ) x = tx = 0;
+    if( ret ){
+	
+	cursor_x = api.lblX;
+	Item &sel = items[next(start)];
+	
+	if( api.lblCenter ){
+	    for( int i=0; sel.name[i]; ++i )
+		cursor_x -= 2;
+	}
+	
+	cursor_y = api.lblY;
+	drawcolor = api.lblColor;
+	print( sel.name );
+	
+    }else{
 
-    lcdRefresh();    
+	if( x < tx ) x++;
+	else if( x > tx ) x--;
+	if( x == tx ) x = tx = 0;
+	if( y < ty ) y++;
+	else if( y > ty ) y--;
+	if( y == ty ) y = ty = 0;
+
+    }
+
+    return ret;
 }
 
 bool shiftRight;
+char buf[256];
+bool startSelection( KAPI *kapi ){
+    
+    char *bufp = buf;
+    const char *dir = path;
+    while( *dir ) *bufp++ = *dir++;
+    *bufp++ = '/';
+	    
+    DIR *d = FS.opendir( path );
+    if( !d ) return false;
+
+    FS.seekdir(d, selection);
+    dirent *e = FS.readdir(d);
+
+    for( uint32_t i=0; e && e->d_name[i]; ++i )
+	*bufp++ = e->d_name[i];
+    *bufp++ = 0;
+    
+    FS.closedir(d);
+
+    showError("");
+    
+    if( e )
+	kapi->createProcess( buf );
+
+    return true;
+}
+
+void shift( int32_t fileId, int32_t itemId ){
+
+    DIR *d = FS.opendir( path );
+
+    if( !items[itemId].load( d, fileId ) ){
+	items[itemId].loaded = false;
+	uint8_t *p = items[itemId].icon;
+	for( int i=36*18; i; --i )
+	    *p++ = 0;
+    }else
+	items[itemId].loaded = true;
+
+    FS.closedir(d);
+
+}
 
 void showModes( KAPI *kapi ){
-    if( tx == x ){
-	int32_t fileId, itemId;
-	bool moved = true;
+    int32_t fileId, itemId;
+    
+    if( stopped() ){
 	
 	if( shiftRight ){
-	    
 	    selection++;
 	    if( selection == fileCount ) selection = 0;
 	    fileId = selection+1;
@@ -174,22 +228,21 @@ void showModes( KAPI *kapi ){
 	    itemId = start;
 	    start = next(start);
 	    shiftRight = false;
-	    moved = true;
-
-	    if( isPressedRight() ){
+	    shift( fileId, itemId );
+	}
+	
+	if( isPressedA() && items[selection].loaded ){
+	    startSelection( kapi );
+	    return;
+	}
+	
+	if( isPressedRight() || isPressedDown() ){
 	    
-		tx = -40;
-		shiftRight = true;
-	    
-	    }	    
-
-	}else if( isPressedRight() ){
-	    
-	    tx = -40;
+	    tx = api.moveX;
+	    ty = api.moveY;
 	    shiftRight = true;
-	    moved = false;
 	    
-	}else if( isPressedLeft() ){
+	}else if( isPressedLeft() || isPressedUp() ){
 	    
 	    selection--;
 	    if( selection < 0 ) selection = fileCount-1;
@@ -197,21 +250,17 @@ void showModes( KAPI *kapi ){
 	    if( fileId < 0 ) fileId = fileCount-1;
 	    start = prev(start);
 	    itemId = start;
-	    x = -40;
-	    moved = true;
+	    x = api.moveX;
+	    y = api.moveY;
 
-	}else moved = false;
+	    shift( fileId, itemId );
 
-	if( moved ){
-	    DIR *d = FS.openddir( path );
-	    items[itemId].load( d, fileId );
-	    items[itemId].off = fileId;
-	    FS.closedir(d);
 	}
 	
     }
-    
+
     draw();
+    
 }
 
 /* * /
@@ -234,50 +283,113 @@ extern "C" {
 }
 /* */
 
+int initPluginCount = 0;
+void initPlugin( KAPI *kapi ){
+
+    FS.init("");
+    DIR *d = FS.opendir( widgetspath );
+    if( d ){
+	FS.seekdir( d, initPluginCount++ );
+	
+	while( dirent *e = FS.readdir(d) ){
+	    if( e->d_name[0] == '.' ) continue;
+	    
+	    char fullName[256], *fnp = fullName;
+	    const char *src = widgetspath;
+	    while( (*fnp++ = *src++) );
+	    fnp--;
+	    *fnp++ = '/';
+	    src = e->d_name;
+	    while( (*fnp++ = *src++) );
+	    
+	    kapi->createProcess( fullName );
+	    
+	    return;
+	}
+    }
+    api.run = showModes;
+	
+}
+
 void init( KAPI *kapi ){
     
     font = font8x8;
     cursor_x = 0;
     cursor_y = 0;
-    prevselection = -100;
+    drawcolor = 7;
 
-    showError("Pizza");
-
-    /*
-
-    DIR *d = FS.openddir( path );
+    DIR *d = FS.opendir( path );
 
     if( !d ){
 	showError("Desktop folder missing");
 	return;
     }
 
-    if( !loadFiles(d) ){
+    if( !countFiles(d) ){
 	FS.closedir( d );
-	showError("Nothing in Desktop");
+	showError("Empty Desktop");
 	return;
     }
 
-    FS.closedir(d);
-    d = FS.openddir( path );
-
     int cfile = fileCount - 1;
     for( int i=0; i<maxitem; ++i ){
-	if( !items[i].load( d, cfile++ ) ){
-	    FS.closedir( d );
-	    return;
-	}
-	if( cfile >= fileCount ) cfile = 0;
+	items[i].loaded = items[i].load( d, cfile++ );
+	if( cfile >= fileCount )
+	    cfile = 0;
     }
     start = 0;
     FS.closedir( d );
 
-    api.run = showModes;
-    showModes( kapi );	
-    */    
+    initPluginCount = 0;
+    api.run = initPlugin;
+    initPlugin( kapi );
 }
 
+void clear(){    
+    fillRect(
+	api.clearX,
+	api.clearY,
+	api.clearWidth,
+	api.clearHeight,
+	api.clearColor
+	);
+}
+
+void setCursor( int x, int y ){
+    cursor_x = x;
+    cursor_y = y;
+}
+
+void setDrawColor( uint32_t c ){
+    drawcolor = c&0xF;
+}
+
+namespace DESKTOP {
+    
 API api = {
-    init
+    init, 0, 0,
+
+    clear,    
+    fillRect,
+    vline,
+    hline,
+    setPixel,
+    drawBitmap,
+    setDrawColor,
+    setCursor,
+    cprintf,
+    lcdRefresh,
+    
+    screenbuffer,
+    palette,
+    width, height,
+    
+    0, 0, width, height, 0, 
+    55, 18, true, 7, // lblX, lblY, lblCenter, lblColor
+
+    40, -2, 0, 26, // itemStrideX, itemOffsetX, itemStrideY, itemOffsetY
+
+    -40, 0, // moveX, moveY
 };
 
+}

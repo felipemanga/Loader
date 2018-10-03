@@ -1,7 +1,9 @@
 #include "../kernel/kapi.h"
 #include "api.h"
 
-extern API api;
+namespace DESKTOP{
+    extern API api;
+}
 
 extern "C" {
 
@@ -10,7 +12,7 @@ extern "C" {
     __attribute__ ((section(".after_vectors")))
     PAPI *onLoad( KAPI *kapi ){
 	__libc_init_array();
-	return &api;
+	return &DESKTOP::api;
     }
 
 }

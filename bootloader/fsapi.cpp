@@ -14,7 +14,8 @@ FILE * fs_fopen( const char *file, const char *mode ){
 
 // fclose
 int fs_fclose( FILE *fp ){
-    ((FATFileHandle*) fp)->close();
+    if( fp )
+	((FATFileHandle*) fp)->close();
     return 0;
 }
 

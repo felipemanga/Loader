@@ -1,22 +1,19 @@
 #include "../kernel/kapi.h"
-#include "api.h"
+#include "../desktop/api.h"
 
-namespace DT {
-    #include "../desktop/api.h"
-}
+DESKTOP::API *desktop;
+int c, pressed;
 
-DT::API *desktop;
-
-void setup( DT::API *dtapi ){
-    // desktop = dtapi;
-    DBG(dtapi);
-    // desktop->palette[0] = 0xFFFF;
-    // desktop->lcdRefresh();
+void setup( DESKTOP::API *dtapi ){
+    desktop = dtapi;
 }
 
 void loop( KAPI *kernel ){
-    DBG(kernel);
+    if( isPressedLeft() || isPressedRight() ) c += pressed?0:++pressed;
+    else pressed = 0;
+    desktop->setCursor( 0, desktop->height-5 );
+    desktop->setDrawColor(c);
+    desktop->printf("%d", c);
 }
 
-API api = { loop };
 

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "miniprint.h"
 
 #define POK_LCD_W 220
 #define POK_LCD_H 176
@@ -237,7 +238,7 @@ void drawBitmap(int x, int y, int w, int h, const unsigned char *bitmap){
     
     if( y < 0 ){
 	bitmap -= y*(w>>1);
-	h += y*(w>>1);
+	h += y;
 	y = 0;
     }
 
@@ -294,4 +295,32 @@ int drawChar(int x, int y, const unsigned char *bitmap, unsigned int index){
 	}
     }
     return numBytes; // for character stepping
+}
+
+
+void ecprintf( int *b ){
+    char *str = (char *) *b++;
+
+    while( char c = *str++ ){
+	if( c == '%' ){
+	    c = *str++;
+	    if( !c ) return;
+	    if( c == 'd' ){
+		print( *b++ );
+		continue;
+	    }else if( c == 'c' ){
+		print( (char) *b++ );
+	    }else if( c == 's' ){
+		print( (char *) *b++ );
+		continue;
+	    }
+	}
+	write( c );
+    }
+
+}
+
+void cprintf( const char *str, ... ){
+    int *b = (int *) &str;
+    ecprintf( b );
 }

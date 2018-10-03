@@ -7,10 +7,15 @@
 // #define DBG(value)
 #define DBG(value)	((volatile uint32_t *) 0x400483F4)[0] = uint32_t(value)
 
+#ifndef WEAK
+#define WEAK __attribute__ ((weak))
+#endif
+
 struct KAPI;
 
 struct PAPI {
     void (*run)( KAPI * );
+    uint32_t pid, parentPid;
 };
 
 enum class ProcessState {
@@ -22,14 +27,13 @@ enum class ProcessState {
 struct ProcessHandle {
     ProcessState state;
     PAPI *api;
-    uint32_t pid;
 };
 
 struct KAPI {
     void *ipcbuffer;
     ProcessHandle (*createProcess)( const char *name );
     void (*killProcess)( uint32_t pid );
-    uint32_t (*getActivePID)();
+    bool (*isAlive)( uint32_t pid );
 };
 
 extern KAPI *kapi;

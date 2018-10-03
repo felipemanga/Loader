@@ -5,6 +5,9 @@
 #include "lcd.hpp"
 #include "miniprint.h"
 #include "font8x8.h"
+
+using namespace DESKTOP;
+
 const char *widgetspath = "loader/desktopwidgets";
 const char *path = "loader/desktop";
 const uint8_t maxitem = 4;
@@ -115,19 +118,29 @@ bool stopped(){
 }
 
 bool draw(){
-    bool ret = true;
+    bool ret = stopped();
+
+    lcdRefresh();
+    api.clear();
     
-    fillRect(
-	api.clearX,
-	api.clearY,
-	api.clearWidth,
-	api.clearHeight,
-	api.clearColor
-	);
-    
-    if( stopped() ){
-	ret = false;
-	fillRect( api.selX, api.selY, 38, 38, hlcolor++ );
+    if( ret ){
+	fillRect(
+	    api.itemStrideX+api.itemOffsetX-1,
+	    api.itemStrideY+api.itemOffsetY-1,
+	    38, 38, hlcolor++
+	    );
+    }
+
+
+    for( int i=0, c=start; i<maxitem; ++i, c=next(c) ){
+	api.drawBitmap(
+	    i*api.itemStrideX+api.itemOffsetX+x,
+	    i*api.itemStrideY+api.itemOffsetY+y,
+	    36, 36, items[c].icon
+	    );
+    }
+
+    if( ret ){
 	
 	cursor_x = api.lblX;
 	Item &sel = items[next(start)];
@@ -138,25 +151,19 @@ bool draw(){
 	}
 	
 	cursor_y = api.lblY;
+	drawcolor = api.lblColor;
 	print( sel.name );
+	
+    }else{
+
+	if( x < tx ) x++;
+	else if( x > tx ) x--;
+	if( x == tx ) x = tx = 0;
+	if( y < ty ) y++;
+	else if( y > ty ) y--;
+	if( y == ty ) y = ty = 0;
+
     }
-
-    for( int i=0, c=start; i<maxitem; ++i, c=next(c) ){
-	api.drawBitmap(
-	    i*api.itemStrideX+api.itemOffsetX+x,
-	    i*api.itemStrideY+api.itemOffsetY+y,
-	    36, 36, items[c].icon
-	    );
-    }
-
-    if( x < tx ) x++;
-    else if( x > tx ) x--;
-    if( x == tx ) x = tx = 0;
-    if( y < ty ) y++;
-    else if( y > ty ) ty--;
-    if( y == ty ) y = ty = 0;
-
-    lcdRefresh();
 
     return ret;
 }
@@ -182,7 +189,7 @@ bool startSelection( KAPI *kapi ){
     
     FS.closedir(d);
 
-    showError("exited");
+    showError("");
     
     if( e )
 	kapi->createProcess( buf );
@@ -229,13 +236,13 @@ void showModes( KAPI *kapi ){
 	    return;
 	}
 	
-	if( isPressedRight() ){
+	if( isPressedRight() || isPressedDown() ){
 	    
 	    tx = api.moveX;
 	    ty = api.moveY;
 	    shiftRight = true;
 	    
-	}else if( isPressedLeft() ){
+	}else if( isPressedLeft() || isPressedUp() ){
 	    
 	    selection--;
 	    if( selection < 0 ) selection = fileCount-1;
@@ -283,16 +290,20 @@ void initPlugin( KAPI *kapi ){
     DIR *d = FS.opendir( widgetspath );
     if( d ){
 	FS.seekdir( d, initPluginCount++ );
-	dirent *e = FS.readdir(d);
-	if( e ){
+	
+	while( dirent *e = FS.readdir(d) ){
+	    if( e->d_name[0] == '.' ) continue;
+	    
 	    char fullName[256], *fnp = fullName;
 	    const char *src = widgetspath;
-	    while( *fnp++ = *src++ );
+	    while( (*fnp++ = *src++) );
 	    fnp--;
 	    *fnp++ = '/';
 	    src = e->d_name;
-	    while( *fnp++ = *src++ );
+	    while( (*fnp++ = *src++) );
+	    
 	    kapi->createProcess( fullName );
+	    
 	    return;
 	}
     }
@@ -316,7 +327,7 @@ void init( KAPI *kapi ){
 
     if( !countFiles(d) ){
 	FS.closedir( d );
-	showError("Nothing in Desktop");
+	showError("Empty Desktop");
 	return;
     }
 
@@ -334,28 +345,51 @@ void init( KAPI *kapi ){
     initPlugin( kapi );
 }
 
-API api = {
-    init,
+void clear(){    
+    fillRect(
+	api.clearX,
+	api.clearY,
+	api.clearWidth,
+	api.clearHeight,
+	api.clearColor
+	);
+}
+
+void setCursor( int x, int y ){
+    cursor_x = x;
+    cursor_y = y;
+}
+
+void setDrawColor( uint32_t c ){
+    drawcolor = c&0xF;
+}
+
+namespace DESKTOP {
     
+API api = {
+    init, 0, 0,
+
+    clear,    
     fillRect,
     vline,
     hline,
     setPixel,
     drawBitmap,
-    drawChar,
+    setDrawColor,
+    setCursor,
+    cprintf,
     lcdRefresh,
     
     screenbuffer,
     palette,
     width, height,
-    &drawcolor,
     
     0, 0, width, height, 0, 
-    35, 25, // selX, selY
-    55, 18, true, // lblX, lblY, lblCenter
+    55, 18, true, 7, // lblX, lblY, lblCenter, lblColor
 
-    40, -3, 0, 26, // itemStrideX, itemOffsetX, itemStrideY, itemOffsetY
+    40, -2, 0, 26, // itemStrideX, itemOffsetX, itemStrideY, itemOffsetY
 
     -40, 0, // moveX, moveY
 };
 
+}
