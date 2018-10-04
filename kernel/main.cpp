@@ -15,7 +15,6 @@ struct Process {
 uint32_t nextPID;
 uint8_t procmap[32];
 uint8_t ipcbuffer[256];
-char b[256];
 uint32_t killedpid;
 
 uint32_t hash( const char *str ){
@@ -25,7 +24,7 @@ uint32_t hash( const char *str ){
     return h;
 }
 
-uint8_t loadPOP( const char *fileName, uint32_t parentPID );
+uint32_t loadPOP( const char *fileName, uint32_t parentPID );
 
 ProcessHandle createProcess( const char *path );
 void killProcess( uint32_t pid );
@@ -59,7 +58,7 @@ void killProcess( uint32_t lpid ){
 
     if( processes[ pid ].api ){
 	for( uint32_t j=0; j<MAX_PID; ++j ){
-	    if( processes[j].api->parentPid == lpid )
+	    if( processes[j].api && processes[j].api->parentPid == lpid )
 		killProcess(processes[j].pid);
 	}
     }
@@ -87,7 +86,7 @@ ProcessHandle createProcess( const char *path ){
 
     uint32_t i;
     for( i=0; i<MAX_PID; ++i )
-	if( h == processes[i].hash )
+	if( h == processes[i].hash && (processes[i].pid&0xFF) != BAD_PID )
 	    return ProcessHandle{ ProcessState::ready, processes[i].api };
 
     for( i=0; i<256 && (procToLoad[i] = path[i]); ++i ){;}
@@ -113,15 +112,18 @@ void loop(){
 
 		if( procToLoadState == ProcessState::pending ){
 
-		    uint8_t pid = loadPOP( procToLoad, processes[i].pid );
+		    uint32_t pid = loadPOP( procToLoad, processes[i].pid );
 
-		    if( pid != BAD_PID ){
+		    if( (pid & 0xFF) != BAD_PID ){
 			procToLoadState = ProcessState::ready;
 			DBG(11);
 			DBG(pid);
 		    }else{
 			procToLoadState = ProcessState::error;
-			DBG(12);
+			DBG(15);
+			char *fileName = procToLoad;
+			while( *fileName )
+			    DBG( *fileName++ );
 		    }
 	    
 		}
@@ -129,7 +131,7 @@ void loop(){
 	    }
 	}
     
-	if( !live && loadPOP( "loader/desktop.pop", BAD_PID ) == BAD_PID ){
+	if( !live && (loadPOP( "loader/desktop.pop", BAD_PID )&0xFF) == BAD_PID ){
 	    break;
 	}
 
@@ -164,6 +166,7 @@ void copyCode( uint32_t addr, uint32_t count, FILE *f, uint8_t pid ){
     while( count ){
 	
 	if( addr < 0x10000000 ){
+	    __attribute__ ((aligned)) char b[256];
 	    readCount = FS.fread( b, 1, 256, f );
 	    if( !readCount ) break;
 	    CopyPageToFlash( addr, (uint8_t*) b );
@@ -186,7 +189,7 @@ void copyCode( uint32_t addr, uint32_t count, FILE *f, uint8_t pid ){
     
 }
 
-uint8_t loadPOP( const char *fileName, uint32_t parentPID ){
+uint32_t loadPOP( const char *fileName, uint32_t parentPID ){
     callerPID = parentPID;
 
     FS.init("sd");
@@ -223,7 +226,7 @@ uint8_t loadPOP( const char *fileName, uint32_t parentPID ){
 	    break;
 	    
 	case TAG_CODE:
-	    FS.fseek( f, -16, SEEK_CUR );
+	    FS.fseek( f, -8, SEEK_CUR );
 	    copyCode( targetAddr, -1, f, pid );
 	    canExec = true;
 	    break;
@@ -248,8 +251,10 @@ uint8_t loadPOP( const char *fileName, uint32_t parentPID ){
 
     FS.fclose(f);
 
-    if( !canExec )
+    if( !canExec ){
+	DBG(0);
 	return BAD_PID;
+    }
 
     if( targetAddr == 0 )
 	*((uint32_t*)0xE000ED0C) = 0x05FA0004; //issue system reset
@@ -269,15 +274,16 @@ uint8_t loadPOP( const char *fileName, uint32_t parentPID ){
     targetAddr |= 1;
     callType call = (callType) targetAddr;
     processes[pid].api = (PAPI *) call( kapi, callerAPI );
-	
+
+    uint32_t lpid = pid + ((++nextPID)<<8);
+    
     if( processes[pid].api ){
 	processes[pid].hash = h;
-	uint32_t lpid = pid + ((++nextPID)<<8);
 	processes[pid].pid = lpid;
 	processes[pid].api->parentPid = callerPID;
 	processes[pid].api->pid = lpid;
     }
 	
-    return pid;
+    return lpid;
 }
 

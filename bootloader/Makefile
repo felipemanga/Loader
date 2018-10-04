@@ -26,6 +26,7 @@ vpath %.h .
 PROJECT := Loader
 
 BPROJECT := BUILD/Loader
+POP := ../BUILD/LOA.DER
 
 # Project settings
 ###############################################################################
@@ -299,6 +300,10 @@ $(BPROJECT).bin: $(BPROJECT).elf
 
 $(BPROJECT).hex: $(BPROJECT).elf
 	$(ELF2BIN) -O ihex $< $@
+
+$(POP): $(BPROJECT).elf
+	+@../pop.js
+	+@echo "===== POP goes the $(PROJECT)! ====="
 
 
 # Rules

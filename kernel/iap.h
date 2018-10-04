@@ -17,7 +17,8 @@ typedef int (*IAP)(unsigned int[], unsigned int[]);
 IAP iap_entry = (IAP) IAP_LOCATION;
 
 
-#define SystemCoreClock (32768UL * ((0x23) + 1))
+#define SystemCoreClock1000 0xBB80
+// (32768UL * ((0x23) + 1))
 
 int CopyPageToFlash (uint32_t address, uint8_t* data) {
 /* IAP command variables */
@@ -69,7 +70,7 @@ int CopyPageToFlash (uint32_t address, uint8_t* data) {
         command[0] = IAP_ERSSECTOR_CMD;	   					/* Erase command code*/
         command[1] = sector;             						/* Start Sector Number */
         command[2] = sector;            						/* End Sector Number */
-        command[3] = SystemCoreClock / 1000UL;	/* Core clock frequency in kHz */
+        command[3] = SystemCoreClock1000;	/* Core clock frequency in kHz */
         iap_call(command, result);
         if (result[0]) return 1;
         /* Prepare to write/erase the last sector, needs to be done again because succesful erase re-locks sectors */
@@ -85,7 +86,7 @@ int CopyPageToFlash (uint32_t address, uint8_t* data) {
         command[0] = 59; //erase page command
         command[1] = 896;
         command[2] = 1023;
-        command[3] = SystemCoreClock / 1000UL;	/* Core clock frequency in kHz */
+        command[3] = SystemCoreClock1000;	/* Core clock frequency in kHz */
         iap_call(command, result);
         if (result[0]) return 1;
         /* Prepare to write/erase the last sector, needs to be done again because succesful erase re-locks sectors */
@@ -101,7 +102,7 @@ int CopyPageToFlash (uint32_t address, uint8_t* data) {
 	command[1] = (uint32_t) (uint32_t*) address;              		    /* Destination Flash Address */
 	command[2] = (uint32_t) data;	    				/* Source RAM Address */
 	command[3] = 0x100;             					/* Number of Bytes to be written */
-	command[4] = SystemCoreClock / 1000;				/* System clock frequency */
+	command[4] = SystemCoreClock1000;				/* System clock frequency */
 	iap_call(command, result);
     if (result[0]) return 1;
 

@@ -28,6 +28,24 @@ void showError( const char *m ){
 int32_t x, y, tx, ty;
 uint8_t hlcolor;
 
+char *concat( char *str, const char *src ){
+    while(*str) str++;
+    while(*src) *str++ = *src++;
+    *str = 0;
+    return str;
+}
+
+bool compare( const char *a, const char *b ){
+    while( *a && *b ){
+	char la = *a++, lb = *b++;
+	if( la >= 'a' && la <= 'z' ) la &= 0xDF;
+	if( lb >= 'a' && lb <= 'z' ) lb &= 0xDF;
+	if( la != lb )
+	    return false;
+    }
+    return *a == *b;
+}
+
 struct Item {
     uint8_t icon[ 36*18 ];
     char name[ 36 ];
@@ -117,6 +135,21 @@ bool stopped(){
     return x == tx && y == ty;
 }
 
+bool addSelectionToPath( char *buf ){
+    DIR *d = FS.opendir( path );
+    if( !d ) return false;
+
+    FS.seekdir(d, selection);
+    dirent *e = FS.readdir(d);
+
+    if( e )
+	concat( buf, e->d_name );
+    
+    FS.closedir(d);
+    
+    return e != nullptr;
+}
+
 bool draw(){
     bool ret = stopped();
 
@@ -169,31 +202,15 @@ bool draw(){
 }
 
 bool shiftRight;
-char buf[256];
 bool startSelection( KAPI *kapi ){
-    
-    char *bufp = buf;
-    const char *dir = path;
-    while( *dir ) *bufp++ = *dir++;
-    *bufp++ = '/';
-	    
-    DIR *d = FS.opendir( path );
-    if( !d ) return false;
+    char buf[256];
+    buf[0] = 0;
+    concat( buf, path );
+    concat( buf, "/" );
+    if( !addSelectionToPath( buf ) )
+	return false;
 
-    FS.seekdir(d, selection);
-    dirent *e = FS.readdir(d);
-
-    for( uint32_t i=0; e && e->d_name[i]; ++i )
-	*bufp++ = e->d_name[i];
-    *bufp++ = 0;
-    
-    FS.closedir(d);
-
-    showError("");
-    
-    if( e )
-	kapi->createProcess( buf );
-
+    kapi->createProcess( buf );
     return true;
 }
 
@@ -232,6 +249,7 @@ void showModes( KAPI *kapi ){
 	}
 	
 	if( isPressedA() && items[selection].loaded ){
+	    while( isPressedA() );
 	    startSelection( kapi );
 	    return;
 	}
@@ -303,9 +321,12 @@ void initPlugin( KAPI *kapi ){
 	    while( (*fnp++ = *src++) );
 	    
 	    kapi->createProcess( fullName );
+	    FS.closedir(d);
 	    
 	    return;
 	}
+
+	FS.closedir(d);
     }
     api.run = showModes;
 	

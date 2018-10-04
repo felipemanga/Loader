@@ -3,10 +3,13 @@
 #include <stdlib.h>
 #include <cstdint>
 
+#if !defined(__FILE_defined)
+struct FILE;
+#endif
+
 #if !defined(DIR) && !defined(MBED_DIRHANDLE_H)
 #define NAME_MAX 255
-#define FILE void
-#define DIR void
+struct DIR;
 struct dirent {
     char d_name[NAME_MAX+1];
     unsigned char d_type;
@@ -33,11 +36,11 @@ struct FSAPI {
     size_t (* const fwrite)(const void *, size_t, size_t, FILE *);
     DIR * (* const opendir)( const char * );
     dirent *(* const readdir)( DIR * );
-    long (*telldir)( DIR *d );
-    void (*seekdir)( DIR *d, long off );
+    long (* const telldir)( DIR *d );
+    void (* const seekdir)( DIR *d, long off );
     int (* const closedir)( DIR * );
     int (* const feof)( FILE * );
-    uint32_t (* init)( const char * );
+    uint32_t (* const init)( const char * );
     
     const uint32_t magic, version;
     void (* const * vectors)();
