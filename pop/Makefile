@@ -33,12 +33,10 @@ POP := ../$(PROJECT).pop
 # Objects and Paths
 
 OBJECTS += BUILD/main.o
-OBJECTS += BUILD/lcd.o
 OBJECTS += BUILD/startup.o
-OBJECTS += BUILD/miniprint.o
-OBJECTS += BUILD/font8x8.o
 
 INCLUDE_PATHS += -I./.
+INCLUDE_PATHS += -I../includes/
 LIBRARY_PATHS :=
 LIBRARIES :=
 LINKER_SCRIPT := boot.ld

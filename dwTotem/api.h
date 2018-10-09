@@ -1,4 +1,4 @@
-struct API : public PAPI {
+struct API : public Process {
 
     
     

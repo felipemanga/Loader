@@ -30,7 +30,7 @@ extern "C" {
 
 extern SDFileSystem *sdfs;
 
-uint32_t init( const char *sd ){
+uint32_t init(){
     LPC_SYSCON->SYSAHBCLKCTRL |= 1<<26;
 
     unsigned int LoadAddr, ExeAddr, SectionLen;
@@ -52,24 +52,23 @@ uint32_t init( const char *sd ){
 
     __libc_init_array();
 
-    sdfs = new	SDFileSystem( P0_9, P0_8, P0_6, P0_7, sd );
+    sdfs = new	SDFileSystem( P0_9, P0_8, P0_6, P0_7, "sd" );
     
     return 1;
 }
 
 
 bool load(){
-    const FSAPI &fs = *(FSAPI *) (0x40000 - sizeof(FSAPI));
-    fs.init("sd");
+    FS.init();
 
-    FILE *fp = fs.fopen("loader/boot.pop", "rb");
+    FILE *fp = FS.fopen("loader/boot.pop", "rb");
     if( !fp )
 	return false;
 
     uint32_t addr = 0x10000100;
-    fs.fread( (void *) addr, 1, 0x2000-0x100, fp );
+    FS.fread( (void *) addr, 1, 0x2000-0x100, fp );
     
-    fs.fclose(fp);
+    FS.fclose(fp);
     return true;
 }
 

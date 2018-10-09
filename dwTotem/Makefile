@@ -36,6 +36,7 @@ OBJECTS += BUILD/main.o
 OBJECTS += BUILD/startup.o
 
 INCLUDE_PATHS += -I./.
+INCLUDE_PATHS += -I../includes/
 LIBRARY_PATHS :=
 LIBRARIES :=
 LINKER_SCRIPT := boot.ld

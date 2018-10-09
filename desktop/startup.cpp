@@ -1,4 +1,4 @@
-#include "../kernel/kapi.h"
+#include "kernel.h"
 #include "api.h"
 
 namespace DESKTOP{
@@ -10,7 +10,7 @@ extern "C" {
     void __libc_init_array(void);
 
     __attribute__ ((section(".after_vectors")))
-    PAPI *onLoad( KAPI *kapi ){
+    Process *onLoad( Kernel *kapi ){
 	__libc_init_array();
 	return &DESKTOP::api;
     }

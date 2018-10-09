@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include "tagtype.h"
 #include "iap.h"
-#include "kapi.h"
+#include "kernel.h"
 
 #define BAD_PTR ((void *) ~0)
 #define MAX_PID 8
 #define BAD_PID 0xFF
 
-struct Process {
-    PAPI *api;
+struct ProcessInstance {
+    Process *api;
     uint32_t hash;
     uint32_t pid;
 } processes[MAX_PID];
@@ -30,14 +30,14 @@ ProcessHandle createProcess( const char *path );
 void killProcess( uint32_t pid );
 bool isAlive( uint32_t pid );
 
-KAPI _kapi = {
+Kernel _kapi = {
     ipcbuffer,
     createProcess,
     killProcess,
     isAlive
 };
 
-KAPI *kapi = &_kapi;
+Kernel *kapi = &_kapi;
 uint32_t callerPID;
 
 bool isAlive( uint32_t pid ){
@@ -82,7 +82,7 @@ char procToLoad[256];
 ProcessHandle createProcess( const char *path ){
     uint32_t h = hash(path);
     if( h == procToLoadHash && procToLoadState != ProcessState::ready )
-	return ProcessHandle{ procToLoadState };
+	return ProcessHandle{ procToLoadState, nullptr };
 
     uint32_t i;
     for( i=0; i<MAX_PID; ++i )
@@ -92,12 +92,12 @@ ProcessHandle createProcess( const char *path ){
     for( i=0; i<256 && (procToLoad[i] = path[i]); ++i ){;}
 
     if( i == 256 )
-	return ProcessHandle{ ProcessState::error };
+	return ProcessHandle{ ProcessState::error, nullptr };
 
     procToLoadHash = h;
     procToLoadState = ProcessState::pending;
     
-    return ProcessHandle{ procToLoadState };
+    return ProcessHandle{ procToLoadState, nullptr };
 }
 
 void loop(){
@@ -192,7 +192,7 @@ void copyCode( uint32_t addr, uint32_t count, FILE *f, uint8_t pid ){
 uint32_t loadPOP( const char *fileName, uint32_t parentPID ){
     callerPID = parentPID;
 
-    FS.init("sd");
+    FS.init();
     FILE *f = FS.fopen( fileName, "rb" );
     if( !f ){
 	DBG(13);
@@ -265,15 +265,15 @@ uint32_t loadPOP( const char *fileName, uint32_t parentPID ){
 	return BAD_PID;
     }
 
-    using callType = uint32_t (*)( KAPI *, PAPI * );
-    PAPI *callerAPI = nullptr;
+    using callType = uint32_t (*)( Kernel *, Process * );
+    Process *callerAPI = nullptr;
 
     if( (callerPID&0xFF) != BAD_PID )
 	callerAPI = processes[callerPID & 0xFF].api;
 
     targetAddr |= 1;
     callType call = (callType) targetAddr;
-    processes[pid].api = (PAPI *) call( kapi, callerAPI );
+    processes[pid].api = (Process *) call( kapi, callerAPI );
 
     uint32_t lpid = pid + ((++nextPID)<<8);
     

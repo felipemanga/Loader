@@ -1,10 +1,13 @@
 #include <stdio.h>
-#include "../kernel/kapi.h"
-#include "../kernel/tagtype.h"
+#include "kernel.h"
+#include "tagtype.h"
 #include "api.h"
-#include "lcd.hpp"
-#include "miniprint.h"
-#include "font8x8.h"
+#include "mode2_impl.h"
+#include "drawCharSetPixel.h"
+#include "miniprint_impl.h"
+#include "mini4x6_impl.h"
+
+#include "strutil.h"
 
 using namespace DESKTOP;
 
@@ -13,7 +16,7 @@ const char *path = "loader/desktop";
 const uint8_t maxitem = 4;
 const char *errmsg;
 
-void error( KAPI *kapi ){
+void error( Kernel *kapi ){
     cursor_x = 0;
     cursor_y = 0;
     print(errmsg);
@@ -28,23 +31,6 @@ void showError( const char *m ){
 int32_t x, y, tx, ty;
 uint8_t hlcolor;
 
-char *concat( char *str, const char *src ){
-    while(*str) str++;
-    while(*src) *str++ = *src++;
-    *str = 0;
-    return str;
-}
-
-bool compare( const char *a, const char *b ){
-    while( *a && *b ){
-	char la = *a++, lb = *b++;
-	if( la >= 'a' && la <= 'z' ) la &= 0xDF;
-	if( lb >= 'a' && lb <= 'z' ) lb &= 0xDF;
-	if( la != lb )
-	    return false;
-    }
-    return *a == *b;
-}
 
 struct Item {
     uint8_t icon[ 36*18 ];
@@ -202,7 +188,7 @@ bool draw(){
 }
 
 bool shiftRight;
-bool startSelection( KAPI *kapi ){
+bool startSelection( Kernel *kapi ){
     char buf[256];
     buf[0] = 0;
     concat( buf, path );
@@ -230,7 +216,7 @@ void shift( int32_t fileId, int32_t itemId ){
 
 }
 
-void showModes( KAPI *kapi ){
+void showModes( Kernel *kapi ){
     int32_t fileId, itemId;
     
     if( stopped() ){
@@ -302,9 +288,9 @@ extern "C" {
 /* */
 
 int initPluginCount = 0;
-void initPlugin( KAPI *kapi ){
+void initPlugin( Kernel *kapi ){
 
-    FS.init("");
+    FS.init();
     DIR *d = FS.opendir( widgetspath );
     if( d ){
 	FS.seekdir( d, initPluginCount++ );
@@ -332,9 +318,9 @@ void initPlugin( KAPI *kapi ){
 	
 }
 
-void init( KAPI *kapi ){
+void init( Kernel *kapi ){
     
-    font = font8x8;
+    font = fontMini;
     cursor_x = 0;
     cursor_y = 0;
     drawcolor = 7;

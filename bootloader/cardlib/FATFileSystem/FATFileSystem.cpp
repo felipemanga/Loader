@@ -73,8 +73,8 @@ FATFileSystem::~FATFileSystem() {
 
 FileHandle *FATFileSystem::open(const char* name, int flags) {
     debug_if(FFS_DBG, "open(%s) on filesystem [%s], drv [%d]\n", name, _name, _fsid);
-    char n[64];
-    sprintf(n, "%d:/%s", _fsid, name);
+    // char n[64];
+    // sprintf(n, "%d:/%s", _fsid, name);
 
     /* POSIX flags -> FatFS open mode */
     BYTE openmode;
@@ -94,7 +94,7 @@ FileHandle *FATFileSystem::open(const char* name, int flags) {
     }
 
     FIL fh;
-    FRESULT res = f_open(&fh, n, openmode);
+    FRESULT res = f_open(&fh, name, openmode, _fsid);
     if (res) {
         debug_if(FFS_DBG, "f_open('w') failed: %d\n", res);
         return NULL;
@@ -106,7 +106,7 @@ FileHandle *FATFileSystem::open(const char* name, int flags) {
 }
 
 int FATFileSystem::remove(const char *filename) {
-    FRESULT res = f_unlink(filename);
+    FRESULT res = f_unlink(filename, _fsid);
     if (res) {
         debug_if(FFS_DBG, "f_unlink() failed: %d\n", res);
         return -1;
@@ -115,7 +115,7 @@ int FATFileSystem::remove(const char *filename) {
 }
 
 int FATFileSystem::rename(const char *oldname, const char *newname) {
-    FRESULT res = f_rename(oldname, newname);
+    FRESULT res = f_rename(oldname, newname, _fsid);
     if (res) {
         debug_if(FFS_DBG, "f_rename() failed: %d\n", res);
         return -1;
@@ -134,7 +134,7 @@ int FATFileSystem::format() {
 #endif
 DirHandle *FATFileSystem::opendir(const char *name) {
     FATFS_DIR dir;
-    FRESULT res = f_opendir(&dir, name);
+    FRESULT res = f_opendir(&dir, name, _fsid);
     if (res != 0) {
         return NULL;
     }
@@ -142,7 +142,7 @@ DirHandle *FATFileSystem::opendir(const char *name) {
 }
 
 int FATFileSystem::mkdir(const char *name, mode_t mode) {
-    FRESULT res = f_mkdir(name);
+    FRESULT res = f_mkdir(name, _fsid);
     return res == 0 ? 0 : -1;
 }
 

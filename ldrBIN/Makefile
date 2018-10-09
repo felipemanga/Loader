@@ -23,10 +23,10 @@ vpath %.h .
 ###############################################################################
 # Project settings
 
-PROJECT := dwHelloWorld
+PROJECT := ldrBIN
 
-BPROJECT := BUILD/dwHelloWorld
-POP := ../$(PROJECT).pop
+BPROJECT := BUILD/ldrBIN
+POP := ../BUILD/loaders/$(PROJECT).pop
 
 # Project settings
 ###############################################################################
@@ -36,7 +36,7 @@ OBJECTS += BUILD/main.o
 OBJECTS += BUILD/startup.o
 
 INCLUDE_PATHS += -I./.
-INCLUDE_PATHS += -I../includes/
+INCLUDE_PATHS += -I./../includes/.
 LIBRARY_PATHS :=
 LIBRARIES :=
 LINKER_SCRIPT := boot.ld

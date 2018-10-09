@@ -17,7 +17,7 @@ namespace SDFS
 / Functions and Buffer Configurations
 /----------------------------------------------------------------------------*/
 
-#define _FS_TINY        1   /* 0:Normal or 1:Tiny */
+#define _FS_TINY        0   /* 0:Normal or 1:Tiny */
 /* When _FS_TINY is set to 1, FatFs uses the sector buffer in the file system
 /  object instead of the sector buffer in the individual file object for file
 /  data transfer. This reduces memory consumption 512 bytes each file object. */
@@ -51,7 +51,7 @@ namespace SDFS
 /* To enable f_forward function, set _USE_FORWARD to 1 and set _FS_TINY to 1. */
 
 
-#define _USE_FASTSEEK   0   /* 0:Disable or 1:Enable */
+#define _USE_FASTSEEK   1   /* 0:Disable or 1:Enable */
 /* To enable fast seek feature, set _USE_FASTSEEK to 1. */
 
 
@@ -93,7 +93,7 @@ namespace SDFS
 */
 
 
-#define _USE_LFN    1       /* 0 to 3 */
+#define _USE_LFN    2       /* 0 to 3 */
 #define _MAX_LFN    255     /* Maximum LFN length to handle (12 to 255) */
 /* The _USE_LFN option switches the LFN support.
 /

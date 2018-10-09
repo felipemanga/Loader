@@ -1,15 +1,23 @@
 #include <SDFileSystem.h>
 #include "FATFileHandle.h"
 #include <stdlib.h>
-#include "../fsapi.h"
+#include "fsapi.h"
 
 SDFileSystem *sdfs;
-uint32_t init( const char *sd );
+uint32_t init();
 extern "C" void (* const g_pfnVectors[])(void);
 
 // fopen
 FILE * fs_fopen( const char *file, const char *mode ){
-    return (FILE *) sdfs->open( file, O_RDWR | O_CREAT );
+    int flags = O_RDWR;
+    if( mode[0] != 'r' ){
+	flags |= O_CREAT;
+	if( mode[0] == 'w' )
+	    flags |= O_TRUNC;
+	else if( mode[0] == 'a' )
+	    flags |= O_APPEND;
+    }
+    return (FILE *) sdfs->open( file, flags );
 }
 
 // fclose
@@ -61,6 +69,7 @@ void fs_seekdir( DIR *d, long off ){
 
 // closedir
 int fs_closedir( DIR *d ){
+    if( !d ) return 0;
     return ((DirHandle *)d)->closedir();
 }
 
@@ -71,7 +80,8 @@ int fs_feof( FILE *fp ){
 
 extern "C" __attribute__ ((section(".bootable")))
 FSAPI const boot = {
-    /* */
+    sprintf,
+
     fs_fopen,
     fs_fclose,
     fs_fread,
@@ -84,18 +94,6 @@ FSAPI const boot = {
     fs_seekdir,
     fs_closedir,
     fs_feof,    
-    /*/
-      fopen,
-      fclose,
-      fread,
-      ftell,
-      fseek,
-      fwrite,
-      opendir,
-      readdir,
-      closedir,
-      feof,
-      /**/
     
     init,
     0xB007AB1E,

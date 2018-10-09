@@ -2041,31 +2041,31 @@ BYTE check_fs ( /* 0:FAT-VBR, 1:Any BR but not FAT, 2:Not a BR, 3:Disk error */
 
 static
 FRESULT chk_mounted (   /* FR_OK(0): successful, !=0: any error occurred */
-    const TCHAR **path, /* Pointer to pointer to the path name (drive number) */
+    UINT vol, /* Pointer to pointer to the path name (drive number) */
     FATFS **rfs,        /* Pointer to pointer to the found file system object */
     BYTE wmode          /* !=0: Check write protection for write access */
 )
 {
     BYTE fmt, b, pi, *tbl;
-    UINT vol;
     DSTATUS stat;
     DWORD bsect, fasize, tsect, sysect, nclst, szbfat;
     WORD nrsv;
-    const TCHAR *p = *path;
+    // const TCHAR *p = *path;
     FATFS *fs;
 
-
-    /* Get logical drive number from the path name */
-    vol = p[0] - '0';                   /* Is there a drive number? */
-    if (vol <= 9 && p[1] == ':') {      /* Found a drive number, get and strip it */
-        p += 2; *path = p;              /* Return pointer to the path name */
-    } else {                            /* No drive number is given */
+/*
+    // Get logical drive number from the path name
+    vol = p[0] - '0';             // Is there a drive number?
+    if (vol <= 9 && p[1] == ':') {// Found a drive number, get and strip it
+	p += 2; *path = p;        // Return pointer to the path name
+    } else {                      // No drive number is given
 #if _FS_RPATH
-        vol = CurrVol;                  /* Use current drive */
+	vol = CurrVol;            // Use current drive
 #else
-        vol = 0;                        /* Use drive 0 */
+	vol = 0;                  // Use drive 0
 #endif
     }
+*/
 
     /* Check if the file system object is valid or not */
     *rfs = 0;
@@ -2284,7 +2284,8 @@ FRESULT f_mount (
 FRESULT f_open (
     FIL *fp,            /* Pointer to the blank file object */
     const TCHAR *path,  /* Pointer to the file name */
-    BYTE mode           /* Access mode and file open mode flags */
+    BYTE mode,           /* Access mode and file open mode flags */
+    UINT sid
 )
 {
     FRESULT res;
@@ -2298,7 +2299,7 @@ FRESULT f_open (
 
 #if !_FS_READONLY
     mode &= FA_READ | FA_WRITE | FA_CREATE_ALWAYS | FA_OPEN_ALWAYS | FA_CREATE_NEW;
-    res = chk_mounted(&path, &dj.fs, (BYTE)(mode & ~FA_READ));
+    res = chk_mounted(sid, &dj.fs, (BYTE)(mode & ~FA_READ));
 #else
     mode &= FA_READ;
     res = chk_mounted(&path, &dj.fs, 0);
@@ -3024,7 +3025,8 @@ FRESULT f_lseek (
 
 FRESULT f_opendir (
     FATFS_DIR *dj,            /* Pointer to directory object to create */
-    const TCHAR *path   /* Pointer to the directory path */
+    const TCHAR *path,   /* Pointer to the directory path */
+    UINT sid
 )
 {
     FRESULT res;
@@ -3034,7 +3036,7 @@ FRESULT f_opendir (
 
     if (!dj) return FR_INVALID_OBJECT;
 
-    res = chk_mounted(&path, &dj->fs, 0);
+    res = chk_mounted( sid, &dj->fs, 0);
     fs = dj->fs;
     if (res == FR_OK) {
         INIT_BUF(*dj);
@@ -3113,7 +3115,8 @@ FRESULT f_readdir (
 
 FRESULT f_stat (
     const TCHAR *path,  /* Pointer to the file path */
-    FILINFO *fno        /* Pointer to file information to return */
+    FILINFO *fno,        /* Pointer to file information to return */
+    UINT sid
 )
 {
     FRESULT res;
@@ -3121,7 +3124,7 @@ FRESULT f_stat (
     DEF_NAMEBUF;
 
 
-    res = chk_mounted(&path, &dj.fs, 0);
+    res = chk_mounted(sid, &dj.fs, 0);
     if (res == FR_OK) {
         INIT_BUF(dj);
         res = follow_path(&dj, path);   /* Follow the file path */
@@ -3147,7 +3150,8 @@ FRESULT f_stat (
 FRESULT f_getfree (
     const TCHAR *path,  /* Pointer to the logical drive number (root dir) */
     DWORD *nclst,       /* Pointer to the variable to return number of free clusters */
-    FATFS **fatfs       /* Pointer to pointer to corresponding file system object to return */
+    FATFS **fatfs,       /* Pointer to pointer to corresponding file system object to return */
+    UINT sid
 )
 {
     FRESULT res;
@@ -3158,7 +3162,7 @@ FRESULT f_getfree (
 
 
     /* Get drive number */
-    res = chk_mounted(&path, fatfs, 0);
+    res = chk_mounted(sid, fatfs, 0);
     fs = *fatfs;
     if (res == FR_OK) {
         /* If free_clust is valid, return it without full cluster scan */
@@ -3262,7 +3266,8 @@ FRESULT f_truncate (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_unlink (
-    const TCHAR *path       /* Pointer to the file or directory path */
+    const TCHAR *path,       /* Pointer to the file or directory path */
+    UINT sid
 )
 {
     FRESULT res;
@@ -3272,7 +3277,7 @@ FRESULT f_unlink (
     DEF_NAMEBUF;
 
 
-    res = chk_mounted(&path, &dj.fs, 1);
+    res = chk_mounted(sid, &dj.fs, 1);
     if (res == FR_OK) {
         INIT_BUF(dj);
         res = follow_path(&dj, path);       /* Follow the file path */
@@ -3330,7 +3335,8 @@ FRESULT f_unlink (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_mkdir (
-    const TCHAR *path       /* Pointer to the directory path */
+    const TCHAR *path,       /* Pointer to the directory path */
+    UINT sid
 )
 {
     FRESULT res;
@@ -3340,7 +3346,7 @@ FRESULT f_mkdir (
     DEF_NAMEBUF;
 
 
-    res = chk_mounted(&path, &dj.fs, 1);
+    res = chk_mounted(sid, &dj.fs, 1);
     if (res == FR_OK) {
         INIT_BUF(dj);
         res = follow_path(&dj, path);           /* Follow the file path */
@@ -3405,7 +3411,8 @@ FRESULT f_mkdir (
 FRESULT f_chmod (
     const TCHAR *path,  /* Pointer to the file path */
     BYTE value,         /* Attribute bits */
-    BYTE mask           /* Attribute mask to change */
+    BYTE mask,           /* Attribute mask to change */
+    UINT sid
 )
 {
     FRESULT res;
@@ -3414,7 +3421,7 @@ FRESULT f_chmod (
     DEF_NAMEBUF;
 
 
-    res = chk_mounted(&path, &dj.fs, 1);
+    res = chk_mounted(sid, &dj.fs, 1);
     if (res == FR_OK) {
         INIT_BUF(dj);
         res = follow_path(&dj, path);       /* Follow the file path */
@@ -3446,7 +3453,8 @@ FRESULT f_chmod (
 
 FRESULT f_utime (
     const TCHAR *path,  /* Pointer to the file/directory name */
-    const FILINFO *fno  /* Pointer to the time stamp to be set */
+    const FILINFO *fno,  /* Pointer to the time stamp to be set */
+    UINT sid
 )
 {
     FRESULT res;
@@ -3455,7 +3463,7 @@ FRESULT f_utime (
     DEF_NAMEBUF;
 
 
-    res = chk_mounted(&path, &dj.fs, 1);
+    res = chk_mounted(sid, &dj.fs, 1);
     if (res == FR_OK) {
         INIT_BUF(dj);
         res = follow_path(&dj, path);   /* Follow the file path */
@@ -3487,7 +3495,8 @@ FRESULT f_utime (
 
 FRESULT f_rename (
     const TCHAR *path_old,  /* Pointer to the old name */
-    const TCHAR *path_new   /* Pointer to the new name */
+    const TCHAR *path_new,   /* Pointer to the new name */
+    UINT sid
 )
 {
     FRESULT res;
@@ -3497,7 +3506,7 @@ FRESULT f_rename (
     DEF_NAMEBUF;
 
 
-    res = chk_mounted(&path_old, &djo.fs, 1);
+    res = chk_mounted( sid, &djo.fs, 1);
     if (res == FR_OK) {
         djn.fs = djo.fs;
         INIT_BUF(djo);

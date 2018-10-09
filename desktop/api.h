@@ -2,7 +2,7 @@
 
 namespace DESKTOP {
 
-struct API : public PAPI {
+struct API : public Process {
     void (*clear)();
     void (*fillRect)( int32_t x, int32_t y, uint32_t w, uint32_t h, uint32_t color );
     void (*vline)( uint32_t x, uint32_t y, uint32_t h, uint32_t color );

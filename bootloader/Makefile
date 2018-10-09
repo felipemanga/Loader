@@ -98,6 +98,7 @@ OBJECTS += BUILD/cardlib/FATFileSystem/ChaN/ff.o
 
 
 INCLUDE_PATHS += -I./.
+INCLUDE_PATHS += -I../includes/
 INCLUDE_PATHS += -I./PokittoLib
 INCLUDE_PATHS += -I./PokittoLib/POKITTO_CORE
 INCLUDE_PATHS += -I./PokittoLib/POKITTO_HW

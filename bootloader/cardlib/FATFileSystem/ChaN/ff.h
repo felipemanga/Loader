@@ -204,22 +204,22 @@ typedef enum {
 /* FatFs module application interface                           */
 
 FRESULT f_mount (BYTE, FATFS*);                     /* Mount/Unmount a logical drive */
-FRESULT f_open (FIL*, const TCHAR*, BYTE);          /* Open or create a file */
+FRESULT f_open (FIL*, const TCHAR*, BYTE, UINT);          /* Open or create a file */
 FRESULT f_read (FIL*, void*, UINT, UINT*);          /* Read data from a file */
 FRESULT f_lseek (FIL*, DWORD);                      /* Move file pointer of a file object */
 FRESULT f_close (FIL*);                             /* Close an open file object */
-FRESULT f_opendir (FATFS_DIR*, const TCHAR*);             /* Open an existing directory */
+FRESULT f_opendir (FATFS_DIR*, const TCHAR*, UINT);             /* Open an existing directory */
 FRESULT f_readdir (FATFS_DIR*, FILINFO*);                 /* Read a directory item */
 FRESULT f_stat (const TCHAR*, FILINFO*);            /* Get file status */
 FRESULT f_write (FIL*, const void*, UINT, UINT*);   /* Write data to a file */
-FRESULT f_getfree (const TCHAR*, DWORD*, FATFS**);  /* Get number of free clusters on the drive */
+FRESULT f_getfree (const TCHAR*, DWORD*, FATFS**, UINT);  /* Get number of free clusters on the drive */
 FRESULT f_truncate (FIL*);                          /* Truncate file */
 FRESULT f_sync (FIL*);                              /* Flush cached data of a writing file */
-FRESULT f_unlink (const TCHAR*);                    /* Delete an existing file or directory */
-FRESULT f_mkdir (const TCHAR*);                     /* Create a new directory */
-FRESULT f_chmod (const TCHAR*, BYTE, BYTE);         /* Change attribute of the file/dir */
-FRESULT f_utime (const TCHAR*, const FILINFO*);     /* Change times-tamp of the file/dir */
-FRESULT f_rename (const TCHAR*, const TCHAR*);      /* Rename/Move a file or directory */
+FRESULT f_unlink (const TCHAR*, UINT);                    /* Delete an existing file or directory */
+FRESULT f_mkdir (const TCHAR*, UINT);                     /* Create a new directory */
+FRESULT f_chmod (const TCHAR*, BYTE, BYTE, UINT);         /* Change attribute of the file/dir */
+FRESULT f_utime (const TCHAR*, const FILINFO*, UINT);     /* Change times-tamp of the file/dir */
+FRESULT f_rename (const TCHAR*, const TCHAR*, UINT);      /* Rename/Move a file or directory */
 FRESULT f_chdrive (BYTE);                           /* Change current drive */
 FRESULT f_chdir (const TCHAR*);                     /* Change current directory */
 FRESULT f_getcwd (TCHAR*, UINT);                    /* Get current directory */

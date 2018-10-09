@@ -1,4 +1,4 @@
-#include "../kernel/kapi.h"
+#include "kernel.h"
 #include "../desktop/api.h"
 
 void setup( DESKTOP::API *desktop ){
@@ -18,7 +18,7 @@ void setup( DESKTOP::API *desktop ){
     desktop->clearX = desktop->width - 40;
     desktop->clearWidth = 40;
     
-    FS.init("");
+    FS.init();
     
     if( FILE *f = FS.fopen("loader/wallpaper.16c", "r") ){
 	

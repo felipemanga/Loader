@@ -1,4 +1,4 @@
-#include "../kernel/kapi.h"
+#include "kernel.h"
 #include "../desktop/api.h"
 
 DESKTOP::API *desktop;
@@ -8,7 +8,7 @@ void setup( DESKTOP::API *dtapi ){
     desktop = dtapi;
 }
 
-void loop( KAPI *kernel ){
+void loop( Kernel *kernel ){
     if( isPressedLeft() || isPressedRight() ) c += pressed?0:++pressed;
     else pressed = 0;
     desktop->setCursor( 0, desktop->height-5 );
