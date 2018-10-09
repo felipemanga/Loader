@@ -7,32 +7,32 @@ mkdir BUILD/loaders
 
 echo "*** BOOTLOADER ***"
 cd bootloader
-make clean && make
+make
 cd ..
 
 echo "*** KERNEL ***"
 cd kernel
-make clean && make
+make
 cd ..
 
 echo "*** DESKTOP ***"
 cd desktop
-make clean && make
+make
 cd ..
 
 echo "*** POP ***"
 cd pop
-make clean && make
+make
 cd ..
 
 echo "*** DWHELLOWORLD ***"
 cd dwHelloWorld
-make clean && make
+make
 cd ..
 
 echo "*** DWTOTEM ***"
 cd dwTotem
-make clean && make
+make
 cd ..
 
 # ./run
