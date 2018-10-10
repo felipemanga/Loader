@@ -18,6 +18,15 @@
 #include "pinmap.h"
 #include "sdfs_diskio.h"
 
+volatile uint8_t * const pSPI = (uint8_t *) 0x40040000;
+
+inline int m_Spiwrite( int value ){
+  while( !(pSPI[12] & (1<<1)) ); // wait until writeable
+  pSPI[8] = 0xFF; // write
+  while( !(pSPI[12] & (1<<2)) ); // wait until readable
+  return pSPI[8]; // read
+}
+
 SDFileSystem::SDFileSystem(PinName mosi, PinName miso, PinName sclk, PinName cs, const char* name, PinName cd, SwitchType cdtype, int hz) : FATFileSystem(name), m_Spi(mosi, miso, sclk), m_Cs(cs, 1), m_Cd(cd), m_FREQ(hz)
 {
     //Initialize the member variables
@@ -572,7 +581,7 @@ bool SDFileSystem::readData(char* buffer, int length)
         //Read the data block into the buffer
         unsigned short dataWord;
         for (int i = 0; i < length; i += 2) {
-            dataWord = m_Spi.write(0xFFFF);
+            dataWord = m_Spiwrite(0xFFFF);
             buffer[i] = dataWord >> 8;
             buffer[i + 1] = dataWord;
         }
@@ -585,7 +594,7 @@ bool SDFileSystem::readData(char* buffer, int length)
     } else {
         //Read the data into the buffer
         for (int i = 0; i < length; i++)
-            buffer[i] = m_Spi.write(0xFF);
+            buffer[i] = m_Spiwrite(0xFF);
 
         //Read the CRC16 checksum for the data block
         crc = (m_Spi.write(0xFF) << 8);

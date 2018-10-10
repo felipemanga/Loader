@@ -2,7 +2,8 @@
 #include "tagtype.h"
 
 FILE *getIcon( const char *fileName, uint32_t hash ){    
-    FS.sprintf( buf, "loader/cache/%x.16c", hash );
+    char buf[24*12], *pos;
+    FS.sprintf( buf, ".loader/cache/%x.16c", hash );
 
     FILE *f = FS.fopen( buf, "r" );
     if( f )
@@ -12,7 +13,6 @@ FILE *getIcon( const char *fileName, uint32_t hash ){
     if( !f )
 	return nullptr;
 
-    char buf[24*12], *pos;
     pos = buf;
     for( int i=0; i<24*12; ++i ){
 	hash ^= hash<<17;

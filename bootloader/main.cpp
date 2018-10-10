@@ -61,7 +61,7 @@ uint32_t init(){
 bool load(){
     FS.init();
 
-    FILE *fp = FS.fopen("loader/boot.pop", "rb");
+    FILE *fp = FS.fopen(".loader/boot.pop", "rb");
     if( !fp )
 	return false;
 

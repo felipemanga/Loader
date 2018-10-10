@@ -121,9 +121,6 @@ void loop(){
 		    }else{
 			procToLoadState = ProcessState::error;
 			DBG(15);
-			char *fileName = procToLoad;
-			while( *fileName )
-			    DBG( *fileName++ );
 		    }
 	    
 		}
@@ -131,7 +128,7 @@ void loop(){
 	    }
 	}
     
-	if( !live && (loadPOP( "loader/desktop.pop", BAD_PID )&0xFF) == BAD_PID ){
+	if( !live && (loadPOP( ".loader/desktop.pop", BAD_PID )&0xFF) == BAD_PID ){
 	    break;
 	}
 

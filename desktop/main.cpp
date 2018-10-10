@@ -11,8 +11,8 @@
 
 using namespace DESKTOP;
 
-const char *widgetspath = "loader/desktopwidgets";
-const char *path = "loader/desktop";
+const char *widgetspath = ".loader/desktopwidgets";
+const char *path = ".loader/desktop";
 const uint8_t maxitem = 4;
 const char *errmsg;
 

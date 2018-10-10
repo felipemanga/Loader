@@ -1,0 +1,6 @@
+{
+    "out":"../BUILD/LOA.DER",
+    "tags":[
+	["code", "./BUILD/Loader.bin"]
+    ]
+}

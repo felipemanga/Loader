@@ -53,15 +53,17 @@ struct Item {
 	    this->off = off;
 	}
 
+	if( !isIconValid )
+	    return;
+
 	if( !hasName || !isIconLoaded ){
 	    hasName = true;
 
-	    FILE *fp = FS.fopen("loader/index", "rb");
+	    FILE *fp = FS.fopen(".loader/index", "rb");
 
 	    if( fp ){
-		DBG( 1111 );
 
-		FS.fseek( fp, off * 256, SEEK_SET );
+		FS.fseek( fp, off * 512, SEEK_SET );
 		char *namep;
 
 		buf[0] = 0;
@@ -76,7 +78,7 @@ struct Item {
 		while( namep != buf+1 && *namep != '/' ) namep--;
 		if( *namep=='/' ) namep++;
 		uint32_t i;
-		for( i=0; i<24 && *namep; ++i )
+		for( i=0; i<24 && *namep && *namep != '.'; ++i )
 		    name[i] = *namep++;
 		name[i] = 0;
 
@@ -100,7 +102,7 @@ struct Item {
 	    
 	    Loader *loader;
 	    char plugin[ 40 ];
-	    FS.sprintf( plugin, "loader/loaders/%s.pop", ext );
+	    FS.sprintf( plugin, ".loader/loaders/%s.pop", ext );
 	    loader  = (Loader *) kapi->createProcess( plugin ).api;
 	    
 	    if( loader )
@@ -137,11 +139,6 @@ int next( int i ){
     return i;
 }
 
-bool countFiles( DIR *d ){
-    for( fileCount=0; FS.readdir( d ); fileCount++ ){;}
-    return fileCount > 0;
-}
-
 bool popPath(){
     char *c = path;
     if( !*c ) return false;
@@ -154,54 +151,54 @@ bool popPath(){
 }
 
 bool addSelectionToPath(){
-    DIR *d = FS.opendir( path );
-    if( !d ) return false;
+    FILE *fp = FS.fopen(".loader/index", "rb");
+    if( !fp ) return false;
 
-    FS.seekdir(d, items[selection].off );
-    dirent *e = FS.readdir(d);
+    FS.fseek( fp, items[selection].off * 512 + 1, SEEK_SET );
+    if( path[0] )
+	concat( path, "/" );
 
-    if( e ){
-	if( path[0] )
-	    concat( path, "/" );
-	concat( path, e->d_name );
-    }
+    char *b = path;
+    while(*b) b++;
+    FS.fread( path, 1, 256 - (b - path), fp );
     
-    FS.closedir(d);
-    
-    return e != nullptr;
+    FS.fclose(fp);
+
+    return true;
 }
 
 bool stopped(){
     return x == tx && y == ty;
 }
 
+bool forceDraw;
+
 bool draw( Kernel *kapi ){
-    bool ret = stopped(), redraw = false;
+    bool ret = stopped();
 
-    if( ret )
+    if( ret && !forceDraw )
 	return false;
+    
+    forceDraw = false;
 
-    fillRect(0,0,width,height,api.clearColor);
-    DIRECT::setPixel(220-1, 176-1, 0);
-    lcdRefresh();
+    fillRect( 0, 0, width, height, api.clearColor );
 
-    cursor_x = 0;
-    cursor_y = 0;
-
+    if( x < tx ) x++;
+    else if( x > tx ) x--;
+    if( y < ty ) y++;
+    else if( y > ty ) y--;
+    
+    fillRect(
+	x,  y,
+	26, 26,
+	hlcolor++
+	);
+    
     for( int i=0, c=fileIndex; i<maxitem; ++i, c=next(c) ){
 	Item &item = items[i];
 	int col = i&3, row = i>>2;	
 	
 	item.load( c );
-
-	if( i == selection ){
-	    fillRect(
-		col*26+api.itemOffsetX-1,
-		row*26+api.itemOffsetY-1,
-		26, 26,
-		hlcolor++
-		);
-	}
 
 	if( item.isIconLoaded ){
 	    
@@ -213,15 +210,16 @@ bool draw( Kernel *kapi ){
 	    
 	}else{
 	    
-	    if( item.isIconValid )
-		return false;
-
 	    fillRect(
 		col*26+api.itemOffsetX,
 		row*26+api.itemOffsetY,
 		24, 24,
 		0
 		);
+
+	    if( item.isIconValid )
+		return false;
+
 	}
 	
     }
@@ -231,22 +229,16 @@ bool draw( Kernel *kapi ){
 
     if( !ret ){
 
-	if( x < tx ) x++;
-	else if( x > tx ) x--;
-	if( x == tx ) x = tx = 0;
-	if( y < ty ) y++;
-	else if( y > ty ) y--;
-	if( y == ty ) y = ty = 0;
+	if( stopped() || forceDraw ){
 
-	if( stopped() ){
-
-	    if( redraw )
-		x = -1;
-	    
 	    Item &item = items[selection];
 
-	    cursor_x = 0;
-	    cursor_y = 0;
+	    cursor_x = 110;
+	    cursor_y = 2;
+
+	    char *c = item.name;
+	    while( *c++ )
+		cursor_x -= font[0]>>1;
 	
 	    if( item.isDir ){
 		print("[");
@@ -275,13 +267,12 @@ void empty( Kernel *kapi ){
     if( isPressedB() ){
 	while( isPressedB() );
 	
-	kapi->createProcess("loader/desktop.pop");
+	kapi->createProcess(".loader/desktop.pop");
     }
     
 }
 
 void update( Kernel *kapi ){
-    int32_t fileId, itemId;
     
     if( stopped() ){
 	
@@ -290,7 +281,7 @@ void update( Kernel *kapi ){
 	    while( isPressedB() );
 
 	    if( !popPath() ){
-		kapi->createProcess("loader/desktop.pop");
+		kapi->createProcess(".loader/desktop.pop");
 		return;
 	    }else{
 		initdir();
@@ -314,39 +305,44 @@ void update( Kernel *kapi ){
 		return;
 	    }
 	}
+
+	if( isPressedDown() && selection < (maxitem>>1) ){
+	    selection += maxitem>>1;
+	}else if( isPressedUp() && selection >= (maxitem>>1) ){
+	    selection -= maxitem>>1;
+	}
 	
-	if( isPressedRight() || isPressedDown() ){
+	
+	if( isPressedRight() ){
 	    selection++;
 
-	    if( selection >= (maxitem>>1) ){
+	    if( selection == (maxitem>>1) || selection == maxitem ){
 		
 		selection = 0;
 		fileIndex += maxitem;
+		
 		while( fileIndex >= fileCount )
 		    fileIndex -= fileCount;
 		
-	    }else{
-		
-		tx = api.moveX;
-		ty = api.moveY;
-		
 	    }
 	    
-	}else if( isPressedLeft() || isPressedUp() ){
+	}else if( isPressedLeft() ){
 	    
 	    selection--;
-	    if( selection < 0 ){
+	    if( selection < 0 || selection == (maxitem>>1)-1 ){
 		
-		selection = maxitem-1;
+		selection = (maxitem>>1)-1;
+		fileIndex -= maxitem;
 		
-	    }else{
-		
-		x = api.moveX;
-		y = api.moveY;
-		
+		while( fileIndex < 0 )
+		    fileIndex += fileCount;
+				
 	    }
 
 	}
+	
+	tx = (selection&0x3) * 26 + api.itemOffsetX - 1;
+	ty = (selection>>2) * 26 + api.itemOffsetY - 1;
 	
     }
 
@@ -354,68 +350,112 @@ void update( Kernel *kapi ){
     
 }
 
-    void initdir(){
+void flushDirIndex( char *buf, int32_t bufPos ){
+
+    if( bufPos <= 0 )
+	return;
+    
+    FILE *fp = FS.fopen( ".loader/index", "a" );
+    
+    if( !fp )
+	return;
 	
-	DIR *d = FS.opendir( path );
-	FILE *fp = FS.fopen( "loader/index", "w" );
+    while( bufPos > 0 ){
+				
+	uint32_t len = strlen(buf+1) + 2;
+	
+	FS.fwrite( buf, 1, 512, fp );
+	buf += len;
+	bufPos -= len;
+				
+    }
+    
+    FS.fclose(fp);			
 
-	fileCount = 0;
+}
 
-	if( fp && d ){
+void initdir(){
+	
+    DIR *d = FS.opendir( path );
+    FILE *fp = FS.fopen( ".loader/index", "w" );
 
-	    FS.fclose(fp);
+    fileCount = 0;
 
-	    while( dirent *e = FS.readdir( d ) ){
-
-		if( e->d_name[0] == '.' )
-		    continue;
-
-		{
-		    char *buf = (char *) screenbuffer;
-		    buf[0] = 1;
-
-		    if( e->d_type & DT_ARC ){
-			char ext[4];
-			getExtension( ext, e->d_name );
-
-			FS.sprintf( buf, "loader/loaders/%s.pop", ext );
-			FILE *f = FS.fopen( buf, "r" );
-			if( f ) FS.fclose(f);
-			else continue;
-			buf[0] = 0;
-
-		    }else if( !(e->d_type & DT_DIR) ){
-			continue;
-		    }
-
-		    fileCount++;
-		    FS.sprintf( buf+1, "%s/%s", path, e->d_name );
-		    FILE *fp = FS.fopen( "loader/index", "a" );
-		    if( fp ) FS.fwrite( buf, 1, 256, fp );
-		    FS.fclose(fp);
-		}
-		
-	    }	
-	}
+    if( fp && d ){
+	char *buf = (char *) screenbuffer;
+	uint32_t bufPos = 0, pathLen = strlen(path)+2, fileLen;
 
 	FS.fclose(fp);
-	FS.closedir(d);
 
-	if( fileCount == 0 ){
-	    api.run = empty;
-	    fillRect(0,0,width,height,api.clearColor);
-	    DIRECT::setPixel(220-1, 176-1, 0);
-	    lcdRefresh();
-	    cursor_x = 20;
-	    cursor_y = 40;
-	    print("Empty Folder");
-	}else{
-	    api.run = update;
-	    selection = 0;
-	    fileIndex = 0;
+	while( dirent *e = FS.readdir( d ) ){
+
+	    if( e->d_name[0] == '.' )
+		continue;
+
+	    fileLen = pathLen + strlen(e->d_name);
+
+	    if( bufPos + fileLen >= sizeof(screenbuffer) ){
+		flushDirIndex( buf, bufPos );
+		bufPos = 0;
+	    }
+	    
+	    {
+
+		if( e->d_type & DT_ARC ){
+			
+		    char ext[4], tmp[30];
+		    getExtension( ext, e->d_name );
+
+		    FS.sprintf( tmp, ".loader/loaders/%s.pop", ext );
+
+		    FILE *f = FS.fopen( tmp, "r" );
+		    if( f ) FS.fclose(f);
+		    else continue;
+			
+		    buf[bufPos++] = 0;
+			
+		}else if( !(e->d_type & DT_DIR) ){
+		    continue;
+		}else{
+		    buf[bufPos++] = 1;
+		}
+
+		fileCount++;
+		    
+		FS.sprintf( buf+bufPos, "%s/%s", path, e->d_name );
+		bufPos += fileLen;
+		    
+	    }
+		
 	}
 
+	flushDirIndex( buf, bufPos );
+	
     }
+
+    FS.fclose(fp);
+    FS.closedir(d);
+
+    if( fileCount == 0 ){
+	api.run = empty;
+	fillRect(0,0,width,height,api.clearColor);
+	DIRECT::setPixel(220-1, 176-1, 0);
+	lcdRefresh();
+	cursor_x = 20;
+	cursor_y = 40;
+	print("Empty Folder");
+    }else{
+	api.run = update;
+	selection = 0;
+	fileIndex = 0;
+	x = (selection&0x3) * 26 + api.itemOffsetX - 1;
+	y = (selection>>2) * 26 + api.itemOffsetY - 1;
+	for( uint32_t i=0; i<maxitem; ++i )
+	    items[i].off = ~0;
+	forceDraw = true;
+    }
+
+}
 
     void init( Kernel *kapi ){
 	::kapi = kapi;
@@ -435,7 +475,7 @@ void update( Kernel *kapi ){
     
 	    7, 4,
     
-	    5, 0, 2, 32, // itemStrideX, itemOffsetX, itemStrideY, itemOffsetY
+	    5, 4, 2, 36, // itemStrideX, itemOffsetX, itemStrideY, itemOffsetY
 
 	    -5, -5, // moveX, moveY
     

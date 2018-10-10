@@ -1,0 +1,22 @@
+#!/bin/sh
+
+cp ~/Projects/Pokitto/extder/BUILD/* /media/fmanga/boot/loader/ -r
+
+ls /media/fmanga/boot/loader/ -R
+
+# PokittoEmu ~/Projects/Pokitto/extder/bootloader/BUILD/Loader.bin -I ~/Projects/Pokitto/pokittoemu/boot.img -g &
+
+# EMU=$!
+
+trap '' 2
+
+JLinkGDBServer -select USB -device LPC11U68 -endian little -if SWD -speed 4000 -noir -noLocalhostOnly &
+
+arm-none-eabi-gdb -q -iex "add-auto-load-safe-path ~/Projects/Pokitto/extder" ~/Projects/Pokitto/extder/bootloader/BUILD/Loader.elf
+
+trap 2
+
+#ps -lA | grep PokittoEmu
+#echo "Killing $EMU"
+
+#kill $EMU

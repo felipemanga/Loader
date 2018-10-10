@@ -20,7 +20,7 @@ void setup( DESKTOP::API *desktop ){
     
     FS.init();
     
-    if( FILE *f = FS.fopen("loader/wallpaper.16c", "r") ){
+    if( FILE *f = FS.fopen(".loader/wallpaper.16c", "r") ){
 	
 	FS.fread( desktop->screenbuffer, 1, 55*88, f );
 	FS.fclose(f);
