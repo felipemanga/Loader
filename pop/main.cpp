@@ -51,9 +51,10 @@ struct Item {
 	    isIconLoaded = false;
 	    isIconValid = true;
 	    this->off = off;
+	    name[0] = 0;
 	}
 
-	if( !isIconValid )
+	if( !isIconValid  )
 	    return;
 
 	if( !hasName || !isIconLoaded ){
@@ -216,9 +217,6 @@ bool draw( Kernel *kapi ){
 		24, 24,
 		0
 		);
-
-	    if( item.isIconValid )
-		return false;
 
 	}
 	

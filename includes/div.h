@@ -31,6 +31,10 @@ const ROM_DIV_API_T *divApiBase; /*!< Divider API function table base address */
 #define LPC_ROM_API_BASE_LOC (0x1FFF1FF8UL)
 #define LPC_ROM_API (*(LPC_ROM_API_T * *) LPC_ROM_API_BASE_LOC)
 
+#define MODULO( num, den ) (LPC_ROM_API->divApiBase->uidivmod( (num), (den) ).rem)
+
+#define UDIV( num, den ) (LPC_ROM_API->divApiBase->uidiv( (num), (den) ))
+#define IDIV( num, den ) (LPC_ROM_API->divApiBase->idiv( (num), (den) ))
 
 void miniitoa(unsigned long n, char *buf, uint8_t base=10 ){
     unsigned long i = 0;
