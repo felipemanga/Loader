@@ -12,7 +12,7 @@ MEMORY
 {
   /* Define each memory region */
   /* ORIGIN should be 0x39000*/
-  MFlash256 (rx) : ORIGIN = 0x10005000, LENGTH = 0x800 /* 8K bytes */
+  MFlash256 (rx) : ORIGIN = 0x10005000, LENGTH = 0xC00 /* 8K bytes */
 }
 
 ENTRY(__onLoad)

@@ -40,12 +40,12 @@ void vline( uint32_t x, uint32_t y, uint32_t h, uint32_t color ){
     }
 }
 
-void hline( uint32_t x, uint32_t y, uint32_t h, uint32_t color ){
+void hline( uint32_t x, uint32_t y, uint32_t w, uint32_t color ){
     if( x >= 24 || y >= 24 ) return;
-    if( h + y >= 24 ) h = 24 - y;
+    if( w + x >= 24 ) w = 24 - x;
 
-    while( h-- ){
+    while( w-- ){
 	setPixel( x, y, color );
-	y++;
+	x++;
     }
 }
