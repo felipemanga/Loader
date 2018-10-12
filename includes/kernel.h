@@ -30,6 +30,13 @@ struct ProcessHandle {
     Process *api;
 };
 
+
+struct Progress {
+    uint32_t total;
+    uint32_t copied;
+    uint32_t hash;
+};
+
 struct Kernel {
     void *ipcbuffer;
     ProcessHandle (*createProcess)( const char *name );

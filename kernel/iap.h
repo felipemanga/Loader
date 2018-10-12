@@ -20,7 +20,7 @@ IAP iap_entry = (IAP) IAP_LOCATION;
 #define SystemCoreClock1000 0xBB80
 // (32768UL * ((0x23) + 1))
 
-int CopyPageToFlash (uint32_t address, uint8_t* data) {
+int CopyPageToFlash (uint32_t address, uint8_t* data, uint32_t byteCount ) {
 /* IAP command variables */
     unsigned int command[5], result[4];
 
@@ -101,7 +101,7 @@ int CopyPageToFlash (uint32_t address, uint8_t* data) {
 	command[0] = IAP_WRISECTOR_CMD;						/* Write command code */
 	command[1] = (uint32_t) (uint32_t*) address;              		    /* Destination Flash Address */
 	command[2] = (uint32_t) data;	    				/* Source RAM Address */
-	command[3] = 0x100;             					/* Number of Bytes to be written */
+	command[3] = byteCount;             					/* Number of Bytes to be written */
 	command[4] = SystemCoreClock1000;				/* System clock frequency */
 	iap_call(command, result);
     if (result[0]) return 1;

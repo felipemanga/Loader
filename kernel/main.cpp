@@ -112,6 +112,7 @@ void loop(){
 
 		if( procToLoadState == ProcessState::pending ){
 
+		    FS.init();
 		    uint32_t pid = loadPOP( procToLoad, processes[i].pid );
 
 		    if( (pid & 0xFF) != BAD_PID ){
@@ -128,8 +129,12 @@ void loop(){
 	    }
 	}
     
-	if( !live && (loadPOP( ".loader/desktop.pop", BAD_PID )&0xFF) == BAD_PID ){
+	if( !live ){
+	    FS.init();
+
+	    if( ( loadPOP( ".loader/desktop.pop", BAD_PID )&0xFF) == BAD_PID ){
 	    break;
+	    }
 	}
 
     }
@@ -146,7 +151,9 @@ int main () {
 }
 
 void copyCode( uint32_t addr, uint32_t count, FILE *f, uint8_t pid ){
-    uint32_t readCount, start, end;
+    uint32_t readCount, start, end, size = count;
+    Process *progress = nullptr;
+    Progress ipcbuffer;
 
     if( addr >= 0x10000000 ){
 	start = addr - 0x10000000;
@@ -156,25 +163,52 @@ void copyCode( uint32_t addr, uint32_t count, FILE *f, uint8_t pid ){
 	start >>= 10;
 	end >>= 10;
     }else{
+
+	if( count == ~0UL ){
+	    start = FS.ftell(f);
+	    FS.fseek( f, 0, SEEK_END );
+	    size = FS.ftell( f ) - start;
+	    FS.fseek( f, start, SEEK_SET );
+	}
+	
 	start = 0;
-	end = 0;
+	end = 0;	
+	ipcbuffer.total  = size;
+	ipcbuffer.copied = 0;
+	ipcbuffer.hash = procToLoadHash;
+	kapi->ipcbuffer = &ipcbuffer;
+	
+	uint32_t pid = loadPOP(".loader/progress.pop", BAD_PID) & 0xFF;
+	
+	if( pid != BAD_PID )
+	    progress = processes[pid].api;
+
     }
 
     while( count ){
+
+	if( progress )
+	    progress->run( kapi );
 	
 	if( addr < 0x10000000 ){
-	    __attribute__ ((aligned)) char b[256];
-	    readCount = FS.fread( b, 1, 256, f );
+	    __attribute__ ((aligned)) char b[0x400];
+	    readCount = FS.fread( b, 1, sizeof(b), f );
 	    if( !readCount ) break;
-	    CopyPageToFlash( addr, (uint8_t*) b );
+	    CopyPageToFlash( addr, (uint8_t*) b, sizeof(b) );
 	}else{
 	    readCount = FS.fread( (char *) addr, 1, count, f );
 	}
 	
 	if( !readCount ) break;
+	ipcbuffer.copied += readCount;
 	count -= readCount;
 	addr += readCount;
 	
+    }
+
+    if( progress ){
+	ipcbuffer.copied = ipcbuffer.total;
+	progress->run( kapi );
     }
 
     for( uint32_t i=start; i<end; ++i ){
@@ -189,7 +223,6 @@ void copyCode( uint32_t addr, uint32_t count, FILE *f, uint8_t pid ){
 uint32_t loadPOP( const char *fileName, uint32_t parentPID ){
     callerPID = parentPID;
 
-    FS.init();
     FILE *f = FS.fopen( fileName, "rb" );
     if( !f ){
 	DBG(13);

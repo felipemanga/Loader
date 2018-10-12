@@ -83,7 +83,7 @@ struct Item {
 		    name[i] = *namep++;
 		name[i] = 0;
 
-		nameHash = hash(name);
+		nameHash = hash(buf+1);
 	    
 		isDir = buf[0];
 	    }
@@ -93,32 +93,21 @@ struct Item {
 	if( !isIconValid || isIconLoaded )
 	    return;
 
-	FILE *ifp;
-	if( isDir ){
-	    
-	    concat(buf+1, "/icon.16c");
-	    ifp = FS.fopen(buf+1, "r");
-	    
+	char plugin[ 40 ];
+	if( isDir ){	    
+	    FS.sprintf( plugin, ".loader/loaders/BIN.pop" );
 	}else{
-	    
-	    Loader *loader;
-	    char plugin[ 40 ];
 	    FS.sprintf( plugin, ".loader/loaders/%s.pop", ext );
-	    loader  = (Loader *) kapi->createProcess( plugin ).api;
-	    
-	    if( loader )
-		ifp = loader->getIcon( buf+1, nameHash );
-	    else
-		return;
-	    
 	}
 
-	if( ifp ){
-	    FS.fread( icon, 1, sizeof(icon), ifp );
-	    FS.fclose( ifp );
-	    isIconLoaded = true;
-	}else{
-	    isIconValid = false;
+	Loader *loader  = (Loader *) kapi->createProcess( plugin ).api;
+
+	if( loader ){
+	    if( loader->getIcon( buf+1, nameHash, icon ) ){
+		isIconLoaded = true;	    
+	    }else{
+		isIconValid = false;
+	    }
 	}
 	
     }
@@ -222,7 +211,6 @@ bool draw( Kernel *kapi ){
 	
     }
 
-    DIRECT::setPixel(220-1, 176-1, 0);
     lcdRefresh();
 
     if( !ret ){
@@ -232,7 +220,8 @@ bool draw( Kernel *kapi ){
 	    Item &item = items[selection];
 
 	    cursor_x = 110;
-	    cursor_y = 2;
+	    cursor_y = 12;
+	    drawcolor = api.lblColor;
 
 	    char *c = item.name;
 	    while( *c++ )
@@ -245,6 +234,8 @@ bool draw( Kernel *kapi ){
 	    }else{
 		print(item.name);
 	    }
+	    
+	    DIRECT::setPixel(220-1, 176-1, 0);
 	
 	}
 
@@ -437,11 +428,11 @@ void initdir(){
     if( fileCount == 0 ){
 	api.run = empty;
 	fillRect(0,0,width,height,api.clearColor);
-	DIRECT::setPixel(220-1, 176-1, 0);
 	lcdRefresh();
 	cursor_x = 20;
 	cursor_y = 40;
 	print("Empty Folder");
+	DIRECT::setPixel(220-1, 176-1, 0);
     }else{
 	api.run = update;
 	selection = 0;
@@ -471,7 +462,8 @@ void initdir(){
 	API api = {
 	    init, 0, 0,
     
-	    7, 4,
+	    0, // clearColor
+	    7,
     
 	    5, 4, 2, 36, // itemStrideX, itemOffsetX, itemStrideY, itemOffsetY
 

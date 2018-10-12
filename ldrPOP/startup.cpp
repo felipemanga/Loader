@@ -1,9 +1,6 @@
 #include "kernel.h"
 #include "loader.h"
 
-FILE *getIcon( const char *fileName, uint32_t hash );
-
-
 Loader api = {
     nullptr, 0, 0,
     getIcon

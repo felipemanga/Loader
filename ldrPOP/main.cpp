@@ -1,12 +1,12 @@
 #include "loader.h"
 #include "tagtype.h"
 
-FILE *getIcon( const char *fileName, uint32_t hash ){
+bool getIcon( const char *fileName, uint32_t hash, uint8_t *buf ){
 
     FILE *f = FS.fopen( fileName, "r" );
     
     if( !f )
-	return nullptr;
+	return false;
 
     struct {
 	uint32_t id, len;
@@ -14,8 +14,10 @@ FILE *getIcon( const char *fileName, uint32_t hash ){
 
     while( FS.fread( &tag, sizeof(tag), 1, f ) ){
 	
-	if( tag.id == TAG_IMG_36X36_4BPP ){
-	    return f;
+	if( tag.id == TAG_IMG_24X24_4BPP ){
+	    FS.fread( buf, 1, 24*12, f );
+	    FS.fclose( f );
+	    return true;
 	}else if( tag.id == TAG_CODE ){
 	    break;
 	}else{
@@ -26,7 +28,7 @@ FILE *getIcon( const char *fileName, uint32_t hash ){
 
     FS.fclose(f);
     
-    return nullptr;
+    return false;
     
 }
 

@@ -1,0 +1,185 @@
+
+font8x8.cpp,44
+const unsigned char font8x8[font8x815,309
+
+lcd.cpp,375
+#define POK_LCD_W 3,20
+#define POK_LCD_H 4,42
+#define POK_COLORDEPTH 5,64
+#define width 6,89
+#define height 7,107
+uint8_t drawcolor;9,126
+uint16_t palette[palette11,146
+#define MODE2_INNER_LOOP_B	32,375
+void lcdRefresh(43,749
+void setPixel(136,3056
+void vline(148,3360
+void hline(170,3771
+void fillRect(195,4213
+void drawBitmap(231,4808
+int drawChar(271,5475
+
+main.cpp,932
+const char *widgetspath widgetspath8,158
+const char *path path9,209
+const uint8_t maxitem 10,246
+const char *errmsg;errmsg11,273
+void error(13,294
+void showError(20,400
+int32_t x,25,473
+int32_t x, y,25,473
+int32_t x, y, tx,25,473
+int32_t x, y, tx, ty;25,473
+uint8_t hlcolor;26,495
+struct Item 28,513
+    uint8_t icon[icon29,527
+    char name[name30,554
+    bool loaded,31,575
+    bool loaded, isPop;31,575
+    bool load(33,600
+	    uint32_t id,71,1347
+	    uint32_t id, len;71,1347
+} items[items89,1671
+uint32_t start;90,1689
+int32_t fileCount;91,1705
+int32_t selection;92,1724
+int prev(94,1744
+int next(100,1841
+bool countFiles(106,1960
+bool stopped(113,2074
+bool draw(117,2124
+bool shiftRight;164,2937
+char buf[buf165,2954
+bool startSelection(166,2969
+void shift(193,3452
+void showModes(209,3751
+int initPluginCount 279,4976
+void initPlugin(280,5001
+void init(300,5424
+API api 334,6007
+
+miniprint.cpp,1054
+unsigned char cursor_x,66,2807
+unsigned char cursor_x,cursor_y;66,2807
+const unsigned char * font;67,2840
+void select_font(74,2979
+void print_char(82,3106
+void inc_txtline(89,3275
+void write(97,3436
+void write(104,3550
+void write(110,3653
+void print(140,4244
+void print(145,4294
+void print(150,4355
+void print(155,4434
+void print(160,4494
+void print(165,4572
+void print(180,4777
+void print(186,4880
+void println(191,4945
+void println(197,5003
+void println(203,5066
+void println(209,5137
+void println(215,5217
+void println(221,5287
+void println(227,5366
+void println(233,5437
+void println(239,5517
+void set_cursor(245,5594
+void print(250,5685
+void print(256,5805
+void print(261,5923
+void print(266,6059
+void print(271,6176
+void print(276,6311
+void print(281,6421
+void print(286,6540
+void println(292,6657
+void println(300,6778
+void println(308,6907
+void println(316,7045
+void println(324,7173
+void println(332,7310
+void println(340,7439
+void println(348,7577
+void printNumber(356,7712
+void printFloat(377,8080
+
+startup.cpp,32
+    PAPI *onLoad(onLoad11,160
+
+api.h,1289
+struct API 1,0
+    void (*fillRect)fillRect3,28
+    void (*vline)vline4,114
+    void (*hline)hline5,187
+    void (*setPixel)setPixel6,260
+    void (*drawBitmap)drawBitmap7,324
+    int (*drawChar)drawChar8,405
+    void (*lcdRefresh)lcdRefresh10,490
+    uint8_t *screenbuffer;screenbuffer12,517
+    uint16_t *palette;palette13,544
+    uint8_t width,15,568
+    uint8_t width, height;15,568
+    uint8_t *drawcolor;drawcolor16,595
+    volatile uint8_t clearX,18,620
+    volatile uint8_t clearX, clearY,18,620
+    volatile uint8_t clearX, clearY, clearWidth,18,620
+    volatile uint8_t clearX, clearY, clearWidth, clearHeight,18,620
+    volatile uint8_t clearX, clearY, clearWidth, clearHeight, clearColor;18,620
+    volatile uint8_t selX,19,694
+    volatile uint8_t selX, selY,19,694
+    volatile uint8_t selX, selY, lblX,19,694
+    volatile uint8_t selX, selY, lblX, lblY,19,694
+    volatile uint8_t selX, selY, lblX, lblY, lblCenter;19,694
+    volatile int32_t itemStrideX,20,750
+    volatile int32_t itemStrideX, itemOffsetX,20,750
+    volatile int32_t itemStrideX, itemOffsetX,  itemStrideY,20,750
+    volatile int32_t itemStrideX, itemOffsetX,  itemStrideY, itemOffsetY;20,750
+    volatile int8_t moveX,21,824
+    volatile int8_t moveX, moveY;21,824
+
+font8x8.h,23
+#define FONT8X8_H2,18
+
+minibuttons.h,773
+#define POKITTO_BUTTONS_H22,616
+#define BTN_UP 24,643
+#define BTN_RIGHT 25,665
+#define BTN_DOWN 26,687
+#define BTN_LEFT 27,709
+#define BTN_A 28,731
+#define BTN_B 29,753
+#define BTN_C 30,775
+#define NUM_BTN 31,797
+#define UPBIT 33,820
+#define DOWNBIT 34,839
+#define LEFTBIT 35,858
+#define RIGHTBIT 36,877
+#define ABIT 37,896
+#define BBIT 38,915
+#define CBIT 39,934
+#define POK_BTN_A_PIN 79,1945
+#define POK_BTN_B_PIN 80,1974
+#define POK_BTN_C_PIN 81,2003
+#define POK_BTN_UP_PIN 82,2033
+#define POK_BTN_DOWN_PIN 83,2064
+#define POK_BTN_LEFT_PIN 84,2096
+#define POK_BTN_RIGHT_PIN 85,2129
+#define UPBIT 87,2163
+#define DOWNBIT 88,2182
+#define LEFTBIT 89,2201
+#define RIGHTBIT 90,2220
+#define ABIT 91,2239
+#define BBIT 92,2258
+#define CBIT 93,2277
+
+miniprint.h,28
+#define MINIPRINT_H44,1587
+
+lcd.hpp,120
+#define POK_LCD_W 5,34
+#define POK_LCD_H 6,56
+#define POK_COLORDEPTH 7,78
+#define width 8,103
+#define height 9,121

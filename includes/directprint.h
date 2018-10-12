@@ -12,7 +12,7 @@ namespace DIRECT {
     
     inline void setup_data(uint16_t data)
     {
-	*MPIN2 = (data<<3); // write bits to port
+	*MPIN2 = uint32_t(data)<<3; // write bits to port
     }
 
 
@@ -59,7 +59,7 @@ namespace DIRECT {
 	write_command(0x22);
 
 	*SET_CD = CD_PIN;
-	setup_data(color);
+	setup_data( palette[color] );
 	
 	*CLR_WR = WR_PIN;
 	__asm("nop");

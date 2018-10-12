@@ -1,0 +1,6 @@
+{
+    "out":"../BUILD/progress.pop",
+    "tags":[
+	["codechunk", "0x10002000", "BUILD/progress.bin"]
+    ]
+}

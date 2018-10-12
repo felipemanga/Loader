@@ -5,22 +5,22 @@ const Canvas = require('canvas');
 const Image = Canvas.Image;
 
 const palette = // fs.readFileSync('paletteFinal.hex', 'utf-8')
-`080408
-4a2820
-7b5929
-bd8d52
-eeba73
-f6de94
-fff6de
-bdbaac
-73ae4a
-73aab4
-397d9c
-31505a
-292041
-7b3439
-bd695a
-e6956a`
+`181c20
+4a5052
+a4a19c
+ffffff
+202c9c
+5255ff
+08a18b
+39b2de
+8b20ac
+f691a4
+a42010
+ff8518
+ffde39
+734429
+527d10
+83ce18`
       .split('\n')
       .filter( x => !!x.length )
       .map( x => x.split(/([a-f0-9][a-f0-9])/).filter( x=>!!x.length ).map(x=>parseInt(x, 16)) );

@@ -82,7 +82,7 @@ int main () {
 
 
     {
-	uint32_t SP = 0x10008000;
+	uint32_t SP = 0x10008000 - 0x20;
 	asm volatile("mov sp, %[SP]" : : [SP] "l" (SP) : "cc" );
 	((int (*)(void))0x10000101)();
     }

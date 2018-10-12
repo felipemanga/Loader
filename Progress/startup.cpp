@@ -1,7 +1,7 @@
 #include "kernel.h"
 #include "api.h"
 
-namespace DESKTOP{
+namespace PROGRESS{
     extern API api;
 }
 
@@ -12,7 +12,7 @@ extern "C" {
     __attribute__ ((section(".after_vectors")))
     Process *onLoad( Kernel *kapi, void * ){
 	__libc_init_array();
-	return &DESKTOP::api;
+	return &PROGRESS::api;
     }
 
 }
