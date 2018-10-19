@@ -100,7 +100,8 @@ struct Item {
 	    FS.sprintf( plugin, ".loader/loaders/%s.pop", ext );
 	}
 
-	Loader *loader  = (Loader *) kapi->createProcess( plugin ).api;
+	ProcessHandle ph = kapi->createProcess( plugin );
+	Loader *loader  = (Loader *) ph.api;
 
 	if( loader ){
 	    if( loader->getIcon( buf+1, nameHash, icon ) ){
@@ -108,6 +109,8 @@ struct Item {
 	    }else{
 		isIconValid = false;
 	    }
+	}else if( ph.state == ProcessState::error ){
+	    isIconValid = false;
 	}
 	
     }
