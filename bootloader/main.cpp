@@ -52,8 +52,11 @@ uint32_t init(){
 
     __libc_init_array();
 
-    sdfs = new	SDFileSystem( P0_9, P0_8, P0_6, P0_7, "sd" );
-    
+    sdfs = new	SDFileSystem( P0_9, P0_8, P0_6, P0_7, "sd", NC, SDFileSystem::SWITCH_NONE, 25000000 );
+
+    sdfs->large_frames(true);
+    sdfs->write_validation(false);
+
     return 1;
 }
 

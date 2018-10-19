@@ -19,13 +19,29 @@
 #include "sdfs_diskio.h"
 
 volatile uint8_t * const pSPI = (uint8_t *) 0x40040000;
+volatile uint16_t * const pSPI16 = (uint16_t *) 0x40040000;
 
-inline int m_Spiwrite( int value ){
+inline int m_Spiread16( ){
+  while( !(pSPI16[6] & (1<<1)) ); // wait until writeable
+  pSPI16[4] = 0xFFFF; // write
+  while( !(pSPI16[6] & (1<<2)) ); // wait until readable
+  return pSPI16[4]; // read
+}
+
+inline int m_Spiread( ){
   while( !(pSPI[12] & (1<<1)) ); // wait until writeable
   pSPI[8] = 0xFF; // write
   while( !(pSPI[12] & (1<<2)) ); // wait until readable
   return pSPI[8]; // read
 }
+
+inline int m_Spiwrite( int value ){
+  while( !(pSPI[12] & (1<<1)) ); // wait until writeable
+  pSPI[8] = value; // write
+  while( !(pSPI[12] & (1<<2)) ); // wait until readable
+  return pSPI[8]; // read
+}
+
 
 SDFileSystem::SDFileSystem(PinName mosi, PinName miso, PinName sclk, PinName cs, const char* name, PinName cd, SwitchType cdtype, int hz) : FATFileSystem(name), m_Spi(mosi, miso, sclk), m_Cs(cs, 1), m_Cd(cd), m_FREQ(hz)
 {
@@ -511,15 +527,15 @@ char SDFileSystem::writeCommand(char cmd, unsigned int arg, unsigned int* resp)
 
         //Send the command packet
         for (int i = 0; i < 6; i++)
-            m_Spi.write(cmdPacket[i]);
+            m_Spiwrite(cmdPacket[i]);
 
         //Discard the stuff byte immediately following CMD12
         if (cmd == CMD12)
-            m_Spi.write(0xFF);
+            m_Spiwrite(0xFF);
 
         //Allow up to 8 bytes of delay for the R1 response token
         for (int i = 0; i < 9; i++) {
-            token = m_Spi.write(0xFF);
+            token = m_Spiwrite(0xFF);
             if (!(token & 0x80))
                 break;
         }
@@ -564,7 +580,7 @@ bool SDFileSystem::readData(char* buffer, int length)
     //Wait for up to 500ms for a token to arrive
     m_Timer.start();
     do {
-        token = m_Spi.write(0xFF);
+        token = m_Spiread();
     } while (token == 0xFF && m_Timer.read_ms() < 500);
     m_Timer.stop();
     m_Timer.reset();
@@ -578,14 +594,50 @@ bool SDFileSystem::readData(char* buffer, int length)
         //Switch to 16-bit frames for better performance
         m_Spi.format(16, 0);
 
+	/* * /
         //Read the data block into the buffer
         unsigned short dataWord;
         for (int i = 0; i < length; i += 2) {
-            dataWord = m_Spiwrite(0xFFFF);
+	    dataWord = m_Spiread16(); // read
             buffer[i] = dataWord >> 8;
             buffer[i + 1] = dataWord;
         }
+	/*/
+	while( !(pSPI[12] & (1<<1)) ); // wait until writeable
+	volatile void *SPI = pSPI;
+	int tmp=0;
+	asm volatile(
+	    ".syntax unified" "\n"
+	    "next%=:" "\n"
 
+	    "strh %[clock], [ %[SPI], 8 ]" "\n"
+
+	    "readable%=:" "\n"
+	    "ldrh %[tmp], [ %[SPI], 12 ]" "\n"
+	    "lsls %[tmp], 29" "\n"
+	    "bpl readable%=" "\n"
+
+	    "ldrh %[tmp], [ %[SPI], 8 ]" "\n"
+
+	    "strb %[tmp], [ %[buffer], 1 ]" "\n"
+	    "lsrs %[tmp], 8" "\n"
+	    "strb %[tmp], [ %[buffer], 0 ]" "\n"
+	    
+	    "adds %[buffer], 2" "\n"
+
+	    "subs %[remain], 2" "\n"
+	    "bne next%=" "\n"
+	    : // outputs
+	      [tmp]"+l"(tmp),
+	      [remain]"+l"(length),
+	      [buffer]"+l"(buffer)
+	    : // inputs
+	      [SPI]"l"(SPI),
+	      [clock]"l"(0xFFFF)
+	    : // clobbers
+	      "cc"
+	    );
+	    /* */
         //Read the CRC16 checksum for the data block
         crc = m_Spi.write(0xFFFF);
 
@@ -594,7 +646,7 @@ bool SDFileSystem::readData(char* buffer, int length)
     } else {
         //Read the data into the buffer
         for (int i = 0; i < length; i++)
-            buffer[i] = m_Spiwrite(0xFF);
+            buffer[i] = m_Spiread();
 
         //Read the CRC16 checksum for the data block
         crc = (m_Spi.write(0xFF) << 8);
@@ -634,7 +686,7 @@ char SDFileSystem::writeData(const char* buffer, char token)
     } else {
         //Write the data block from the buffer
         for (int i = 0; i < 512; i++)
-            m_Spi.write(buffer[i]);
+            m_Spiwrite(buffer[i]);
 
         //Send the CRC16 checksum for the data block
         m_Spi.write(crc >> 8);
