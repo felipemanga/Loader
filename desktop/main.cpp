@@ -11,10 +11,31 @@
 
 using namespace DESKTOP;
 
-const char *widgetspath = ".loader/desktopwidgets";
-const char *path = ".loader/desktop";
+const char *widgetspath = "/.loader/desktopwidgets";
+const char *path = "/.loader/desktop";
 const uint8_t maxitem = 4;
 const char *errmsg;
+
+uint8_t logPos=0;
+void log( const char *str, ... ){
+    /* * /
+    cursor_x = 0;
+    cursor_y = logPos*8;
+    int *b = (int *) &str;
+    ecprintf( b );
+    lcdRefresh();
+    logPos++;
+
+    for( volatile int i=0; i<2000; ++i ){
+	for( volatile int j=0; j<1000; ++j );
+    }
+
+    if( logPos >= 10 ){
+	logPos = 0;
+	api.clear();
+    }
+    /* */
+}
 
 void error( Kernel *kapi ){
     cursor_x = 0;
@@ -24,8 +45,15 @@ void error( Kernel *kapi ){
 }
 
 void showError( const char *m ){
-    errmsg = m;
-    api.run = error;
+    /* */
+    log("%s", m);
+    /*/
+    cursor_x = 0;
+    cursor_y = 0;
+    print(m);
+    lcdRefresh();
+    /* */
+    while(true);
 }
 
 int32_t x, y, tx, ty;
@@ -38,11 +66,16 @@ struct Item {
     bool loaded, isPop;
 
     bool load( DIR *d, int32_t off ){
+	log("load %d", off);
 	FS.seekdir( d, off );
 	
 	dirent *e = FS.readdir( d );
-	if( !e || !(e->d_type & DT_ARC) )
+	log("readdir %p", e);
+
+	if( !e ){
+	    showError("read dir fail");
 	    return false;
+	}
 
 	char buf[256], *bufp = buf, *namep = name;
 	const char *dir = path;
@@ -65,8 +98,12 @@ struct Item {
 
 	*bufp++ = *namep++ = 0;
 
-	if( !isPop )
+	if( !isPop ){
+	    showError(e->d_name);
 	    return true;
+	}
+
+	log("fopen %s", buf);
 
 	FILE *f = FS.fopen( buf, "rb" );
 	if( !f ){
@@ -152,11 +189,12 @@ bool draw(){
 
 
     for( int i=0, c=start; i<maxitem; ++i, c=next(c) ){
-	api.drawBitmap(
-	    i*api.itemStrideX+api.itemOffsetX+x,
-	    i*api.itemStrideY+api.itemOffsetY+y,
-	    36, 36, items[c].icon
-	    );
+	if( items[c].loaded )
+	    api.drawBitmap(
+		i*api.itemStrideX+api.itemOffsetX+x,
+		i*api.itemStrideY+api.itemOffsetY+y,
+		36, 36, items[c].icon
+		);
     }
 
     if( ret ){
@@ -190,18 +228,14 @@ bool draw(){
 bool shiftRight;
 bool startSelection( Kernel *kapi ){
     char buf[256];
-    buf[0] = 0;
-    concat( buf, path );
-    concat( buf, "/" );
+    FS.sprintf(buf, "%s/", path);
     if( !addSelectionToPath( buf ) )
 	return false;
-
     kapi->createProcess( buf );
     return true;
 }
 
 void shift( int32_t fileId, int32_t itemId ){
-
     DIR *d = FS.opendir( path );
 
     if( !items[itemId].load( d, fileId ) ){
@@ -289,9 +323,8 @@ extern "C" {
 
 int initPluginCount = 0;
 void initPlugin( Kernel *kapi ){
-
-    FS.init();
     DIR *d = FS.opendir( widgetspath );
+    log("opendir %s %p", widgetspath, d);
     if( d ){
 	FS.seekdir( d, initPluginCount++ );
 	
@@ -315,7 +348,7 @@ void initPlugin( Kernel *kapi ){
 	FS.closedir(d);
     }
     api.run = showModes;
-	
+    log("showModes");
 }
 
 void init( Kernel *kapi ){
@@ -325,7 +358,13 @@ void init( Kernel *kapi ){
     cursor_y = 0;
     drawcolor = 7;
 
+    api.clear();
+
+    log("init");
+
     DIR *d = FS.opendir( path );
+
+    log("open %s %p", path, d); 
 
     if( !d ){
 	showError("Desktop folder missing");
@@ -338,12 +377,19 @@ void init( Kernel *kapi ){
 	return;
     }
 
+    log("file count %d", fileCount);
+
     int cfile = fileCount - 1;
+    int loadCount = 0;
     for( int i=0; i<maxitem; ++i ){
 	items[i].loaded = items[i].load( d, cfile++ );
+	loadCount += items[i].loaded;
 	if( cfile >= fileCount )
 	    cfile = 0;
     }
+
+    log("load count: %d", loadCount);
+
     start = 0;
     FS.closedir( d );
 

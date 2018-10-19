@@ -83,7 +83,7 @@ off_t FATDirHandle::telldir() {
 void FATDirHandle::seekdir(off_t location) {
     // dir.index = location;
 
-    if( !dir.sect ){
+    if( !dir.sect || cur_entry.d_off+1 > location ){
 	f_readdir(&dir, NULL);
 	cur_entry.d_off = -1;
     }
@@ -93,13 +93,14 @@ void FATDirHandle::seekdir(off_t location) {
 	return;
     }
     
-    if( cur_entry.d_off+1 < location )	
-	location -= cur_entry.d_off+1;
-    else
-	f_readdir(&dir, NULL);
+    if( cur_entry.d_off+1 < location ){
+	uint32_t delta = location - (cur_entry.d_off+1);
+	cur_entry.d_off = location - 1;
+	location = delta;
+    }else{
+	cur_entry.d_off = location - 1;
+    }
 
-    cur_entry.d_off = location - 1;
-    
     FILINFO finfo;
 #if _USE_LFN
     finfo.lfname = cur_entry.d_name;

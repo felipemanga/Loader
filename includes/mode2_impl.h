@@ -282,8 +282,17 @@ void ecprintf( int *b ){
 		continue;
 	    }else if( c == 'c' ){
 		print( (char) *b++ );
+		continue;
 	    }else if( c == 's' ){
 		print( (char *) *b++ );
+		continue;
+	    }else if( c == 'p' ){
+		uint32_t x = *b++;
+		for( int shift=28; shift>=0; shift-=4 ){
+		    uint32_t y=(x>>shift)&0xF;
+		    if( y > 9 ) write('A'+(y-0xA));
+		    else write( '0' + y );
+		}
 		continue;
 	    }
 	}
