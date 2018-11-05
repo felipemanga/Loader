@@ -38,13 +38,20 @@ fs.writeFileSync(
 const tmpab32 = new Int32Array(1);
 const tmpab8 = new Int8Array( tmpab32.buffer );
 
+function STR(s){
+    return [
+	...U32( s.length+1 ),
+	s.split("").map( s=>s.charCodeAt(0) ),
+	0
+    ];
+}
 
 function U32(n){
     tmpab32[0] = n;
     return tmpab8;
 }
 
-function img4bpp( path, w, h ){
+function img4bpp( tagType, path, w, h ){
     const canvas = new Canvas(w, h);
     const ctx = canvas.getContext('2d');
     const image = new Image();
@@ -102,7 +109,7 @@ function img4bpp( path, w, h ){
 
     }
 
-    const out = [...U32(10), ...U32((w>>1)*(h))];
+    const out = [...U32(tagType), ...U32((w>>1)*(h))];
 
     for( let i=0; i<infl.length; ){
 	let hi = infl[i++];
@@ -114,7 +121,7 @@ function img4bpp( path, w, h ){
 }
 
 let tags = {
-    PADDING(){
+    PADDING(amount){
         return [...U32(0)];
     },
 
@@ -152,28 +159,32 @@ let tags = {
         return [...U32(6)];
     },
 
-    LONGNAME(){
-        return [...U32(7)];
+    LONGNAME( name ){
+        return [...U32(7), ...STR(name)];
     },
 
-    AUTHOR(){
-        return [...U32(8)];
+    AUTHOR( name ){
+        return [...U32(8), ...STR(name)];
     },
 
-    DESCRIPTION(){
-        return [...U32(9)];
+    DESCRIPTION( desc ){
+        return [...U32(9), ...STR(desc)];
     },
 
     IMG_36X36_4BPP( path ){
-        return img4bpp( path, 36, 36 );
+        return img4bpp( 10, path, 36, 36 );
     },
 
-    IMG_100X24_4BPP(){
-        return [...U32(11)];
+    IMG_24X24_4BPP( path ){
+        return img4bpp( 11, path, 24, 24 );
     },
 
-    IMG_110X88_4BPP(){
-        return [...U32(12)];
+    IMG_100X24_4BPP( path ){
+        return img4bpp( 12, path, 100, 24 );
+    },
+
+    IMG_110X88_4BPP( path ){
+        return img4bpp( 13, path, 110, 88 );
     },
 
     CODE( name ){

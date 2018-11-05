@@ -7,6 +7,7 @@
 #include "directprint.h"
 #include "drawCharDirect.h"
 #include "miniprint_impl.h"
+#include "backlight.h"
 #include "fontTIC80.h"
 #include "loader.h"
 #include "strutil.h"
@@ -245,12 +246,22 @@ bool draw( Kernel *kapi ){
 
     }
 
+    setBacklight(true);
+
     return ret;
 }
 
 bool shiftRight;
 bool startSelection( Kernel *kapi ){
-    kapi->createProcess( path );
+    char plugin[ 40 ];
+    FS.sprintf( (char *) kapi->ipcbuffer, "%s", path );
+
+    FS.sprintf( plugin, ".loader/loaders/%s.pop", items[selection].ext );
+
+    Loader * loader = (Loader *) kapi->createProcess( plugin ).api;
+    if( loader )
+	loader->activate( kapi );
+
     return true;
 }
 

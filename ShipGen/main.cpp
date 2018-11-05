@@ -5,6 +5,7 @@
 #include "drawCharSetPixel.h"
 #include "miniprint_impl.h"
 #include "fontTIC80.h"
+#include "backlight.h"
 #include "../ldrBIN/drawicon.h"
 #include "../ldrBIN/grammar.h"
 #include "../ldrBIN/ships.h"
@@ -31,14 +32,18 @@ void redraw(){
 
 
 void update( Kernel *kernel ){
+    bool init = rndState == 0x12345678;
+
     font = fontTIC806x6;
 
     if( isPressedC() ){
+	fadeBacklight(false);
 	while( isPressedC() );	
 	kernel->createProcess(".loader/desktop.pop");
+	return;
     }
 
-    if( isPressedB() || rndState == 0x12345678 ){
+    if( isPressedB() || init ){
 	while( isPressedA() ); // yes, A.
 	redraw();
 	fillRect( 0, 0, 110, 88, buf[0]&0xF );
@@ -73,6 +78,8 @@ void update( Kernel *kernel ){
     }
 
     lcdRefresh();
+    if( init )
+	fadeBacklight(true);
 }
 
 namespace SHIPGEN{

@@ -3,7 +3,7 @@
 
 Loader api = {
     nullptr, 0, 0,
-    getIcon
+    getIcon, activate
 };
 
 extern "C" {
@@ -13,6 +13,10 @@ extern "C" {
     __attribute__ ((section(".after_vectors")))
     Loader *__onLoad( Kernel *kapi, Process *dtapi ){
 	__libc_init_array();
+	
+	if( *((uint8_t*)kapi->ipcbuffer) )
+	    activate( kapi );
+	
 	return &api;
     }
 

@@ -1,0 +1,6 @@
+{
+    "out":"../BUILD/loaders/DER.pop",
+    "tags":[
+	["codechunk", "0x10005000", "./BUILD/ldrDER.bin"]
+    ]
+}

@@ -6,7 +6,7 @@
 #include "drawCharSetPixel.h"
 #include "miniprint_impl.h"
 #include "mini4x6_impl.h"
-
+#include "backlight.h"
 #include "strutil.h"
 
 using namespace DESKTOP;
@@ -173,11 +173,18 @@ bool addSelectionToPath( char *buf ){
     return e != nullptr;
 }
 
+uint32_t fadeState;
+
 bool draw(){
     bool ret = stopped();
 
     lcdRefresh();
     api.clear();
+
+    if( fadeState == 1 ){
+	fadeState++;
+	fadeBacklight(true);
+    }
     
     if( ret ){
 	fillRect(
@@ -198,6 +205,9 @@ bool draw(){
     }
 
     if( ret ){
+
+	if( fadeState == 0 )
+	    fadeState++;
 	
 	cursor_x = api.lblX;
 	Item &sel = items[next(start)];
@@ -270,6 +280,8 @@ void showModes( Kernel *kapi ){
 	
 	if( isPressedA() && items[selection].loaded ){
 	    while( isPressedA() );
+	    fadeState = 0;
+	    fadeBacklight(false);
 	    startSelection( kapi );
 	    return;
 	}
@@ -352,7 +364,7 @@ void initPlugin( Kernel *kapi ){
 }
 
 void init( Kernel *kapi ){
-    
+    setBacklight(false);
     font = fontMini;
     cursor_x = 0;
     cursor_y = 0;

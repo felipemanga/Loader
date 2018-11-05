@@ -20,4 +20,9 @@ bool getIcon( const char *fileName, u32 hash, uint8_t *buf ){
     
 }
 
+void activate( Kernel *kapi ){
+
+    kapi->createProcess( (char *) kapi->ipcbuffer );
+
+}
 
