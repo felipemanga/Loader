@@ -21,6 +21,7 @@ uint8_t hlcolor;
 char path[256];
 const uint8_t maxitem = 8;
 const char *errmsg;
+bool forceDraw;
 
 void initdir();
 
@@ -112,6 +113,8 @@ struct Item {
 	    }
 	}else if( ph.state == ProcessState::error ){
 	    isIconValid = false;
+	}else{
+	    forceDraw = true;
 	}
 	
     }
@@ -164,8 +167,6 @@ bool addSelectionToPath(){
 bool stopped(){
     return x == tx && y == ty;
 }
-
-bool forceDraw;
 
 bool draw( Kernel *kapi ){
     bool ret = stopped();
@@ -246,7 +247,8 @@ bool draw( Kernel *kapi ){
 
     }
 
-    setBacklight(true);
+    if( !forceDraw )
+	setBacklight(true);
 
     return ret;
 }

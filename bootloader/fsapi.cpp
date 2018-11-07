@@ -16,6 +16,8 @@ FILE * fs_fopen( const char *file, const char *mode ){
 	    flags |= O_TRUNC;
 	else if( mode[0] == 'a' )
 	    flags |= O_APPEND;
+    }else if( mode[1] == 0 ){
+	flags = O_RDONLY;
     }
     return (FILE *) sdfs->open( file, flags );
 }

@@ -2,7 +2,7 @@
 #include "tagtype.h"
 
 bool getIcon( const char *fileName, uint32_t hash, uint8_t *buf ){
-
+    uint32_t readCount = 0;
     FILE *f = FS.fopen( fileName, "r" );
     
     if( !f )
@@ -13,9 +13,11 @@ bool getIcon( const char *fileName, uint32_t hash, uint8_t *buf ){
     } tag;
 
     while( FS.fread( &tag, sizeof(tag), 1, f ) ){
+
+	readCount++;
 	
 	if( tag.id == TAG_IMG_24X24_4BPP ){
-	    FS.fread( buf, 1, 24*12, f );
+	    FS.fread( buf, 1, blen, f );
 	    FS.fclose( f );
 	    return true;
 	}else if( tag.id == TAG_CODE ){
