@@ -1,3 +1,7 @@
+#pragma once
+
+extern uint16_t palette[16];
+
 namespace DIRECT {
 
     uint32_t * const MPIN2 = (uint32_t *) 0xA0002188;
@@ -39,24 +43,32 @@ namespace DIRECT {
   @brief  Write data to the lcd, 16-bit bus
 */
 /**************************************************************************/
-    inline void write_data(uint16_t data)
-    {
-	*SET_CD = CD_PIN;
-	setup_data(data);
-	
+
+    inline void toggle_data(){
 	*CLR_WR = WR_PIN;
 	__asm("nop");
 	
 	*SET_WR = WR_PIN;
     }
 
-    void setPixel( uint32_t x, uint32_t y, uint32_t color ){
-	if( x>=220 || y>=176 ) return;
+    inline void write_data(uint16_t data)
+    {
+	*SET_CD = CD_PIN;
+	setup_data(data);
+	toggle_data();
+    }
+
+    void goToXY( uint32_t x, uint32_t y ){
 	write_command(0x20);
 	write_data(y);
 	write_command(0x21);
 	write_data(x);
 	write_command(0x22);
+    }
+
+    void setPixel( uint32_t x, uint32_t y, uint32_t color ){
+	if( x>=220 || y>=176 ) return;
+	goToXY( x, y );
 
 	*SET_CD = CD_PIN;
 	setup_data( palette[color] );

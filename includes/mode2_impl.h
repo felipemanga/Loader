@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "miniprint.h"
+#include "palette.h"
 
 #define POK_LCD_W 220
 #define POK_LCD_H 176
@@ -8,25 +9,6 @@
 #define height 88
 
 uint8_t drawcolor;
-
-uint16_t palette[16] = {
-0x18e4,
-0x4a8a,
-0xa513,
-0xffff,
-0x2173,
-0x52bf,
-0x0d11,
-0x3d9b,
-0x8915,
-0xf494,
-0xa102,
-0xfc23,
-0xfee7,
-0x7225,
-0x53e2,
-0x8663
-};
 
 uint8_t screenbuffer[(((POK_LCD_H/2)+1)*POK_LCD_W/2)*POK_COLORDEPTH/8];
 

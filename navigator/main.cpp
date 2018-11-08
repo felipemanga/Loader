@@ -3,9 +3,8 @@
 #include "kernel.h"
 #include "tagtype.h"
 #include "api.h"
-#include "mode2_impl.h"
-#include "directprint.h"
-#include "drawCharDirect.h"
+#include "mode2_direct.h"
+#include "drawCharSetPixel.h"
 #include "miniprint_impl.h"
 #include "backlight.h"
 #include "fontTIC80.h"
@@ -17,11 +16,26 @@ using namespace NAVIGATOR;
 Kernel *kapi;
 
 int32_t x, y, tx, ty;
+int32_t selection;
 uint8_t hlcolor;
+char largeBuf[ 1024 ];
 char path[256];
-const uint8_t maxitem = 8;
+const uint8_t maxitem = 10;
 const char *errmsg;
 bool forceDraw;
+
+void getXY( int32_t id, int32_t &x, int32_t &y ){
+    x = id;
+    if( id < (maxitem>>1) ){
+	y = 0;
+    }else{
+	y = api.itemStrideY;
+	x -= maxitem>>1; 
+    }
+    y += api.itemOffsetY;
+    x *= api.itemStrideX;
+    x += api.itemOffsetX;
+}
 
 void initdir();
 
@@ -38,91 +52,122 @@ void showError( const char *m ){
     error(nullptr);
 }
 
+bool loadFileEntry( uint32_t off ){
+    FILE *fp = FS.fopen(".loader/index", "rb");
+
+    if( !fp )
+	return false;
+
+    FS.fseek( fp, off * 512, SEEK_SET );
+    largeBuf[0] = 0;
+    FS.fread( largeBuf, 1, 256, fp );
+    FS.fclose( fp );
+
+    return true;
+}
+
+
 struct Item {
-    uint8_t icon[ 24*12 ];
-    char name[ 25 ];
+    int32_t x, y;
     char ext[4];
-    uint32_t nameHash, off;
-    bool hasName, isDir, isIconLoaded, isIconValid;
+    uint32_t off;
+    bool isDir, isIconLoaded, isIconValid;
 
-    void load( uint32_t off ){
-	char buf[256];
-	if( off != this->off ){
-	    hasName = false;
-	    isDir = false;
-	    isIconLoaded = false;
-	    isIconValid = true;
-	    this->off = off;
-	    name[0] = 0;
-	}
-
-	if( !isIconValid  )
+    void setOffset( uint32_t off ){
+	if( off == this->off )
 	    return;
-
-	if( !hasName || !isIconLoaded ){
-	    hasName = true;
-
-	    FILE *fp = FS.fopen(".loader/index", "rb");
-
-	    if( fp ){
-
-		FS.fseek( fp, off * 512, SEEK_SET );
-		char *namep;
-
-		buf[0] = 0;
-
-		FS.fread( buf, 1, 256, fp );
-		FS.fclose( fp );
-
-		getExtension( ext, buf+1 );
-
-		namep = buf+1;
-		while( *namep++ );
-		while( namep != buf+1 && *namep != '/' ) namep--;
-		if( *namep=='/' ) namep++;
-		uint32_t i;
-		for( i=0; i<24 && *namep && *namep != '.'; ++i )
-		    name[i] = *namep++;
-		name[i] = 0;
-
-		nameHash = hash(buf+1);
-	    
-		isDir = buf[0];
-	    }
-	    
-	}
-
-	if( !isIconValid || isIconLoaded )
-	    return;
-
-	char plugin[ 40 ];
-	if( isDir ){	    
-	    FS.sprintf( plugin, ".loader/loaders/BIN.pop" );
-	}else{
-	    FS.sprintf( plugin, ".loader/loaders/%s.pop", ext );
-	}
-
-	ProcessHandle ph = kapi->createProcess( plugin );
-	Loader *loader  = (Loader *) ph.api;
-
-	if( loader ){
-	    if( loader->getIcon( buf+1, nameHash, icon ) ){
-		isIconLoaded = true;	    
-	    }else{
-		isIconValid = false;
-	    }
-	}else if( ph.state == ProcessState::error ){
-	    isIconValid = false;
-	}else{
-	    forceDraw = true;
-	}
 	
+	isDir = false;
+	isIconLoaded = false;
+	isIconValid = true;
+	this->off = off;
     }
     
 } items[maxitem];
 
+void renderItem( int32_t itemId ){
+    Item &item = items[itemId];
+    
+    if( !item.isIconValid || item.isIconLoaded || !loadFileEntry(item.off) )
+	return;
+
+    int32_t x, y;
+    getXY( itemId, x, y );
+    
+    getExtension( item.ext, largeBuf+1 );
+
+    char *namep = largeBuf+1;
+    while( *namep++ );
+    while( namep != largeBuf+1 && *namep != '/' ) namep--;
+    if( *namep=='/' ) namep++;
+
+    item.isDir = largeBuf[0];
+
+    ProcessHandle ph;
+
+    {
+	char plugin[ 40 ];
+	FS.sprintf( plugin, ".loader/loaders/%s.pop", item.isDir ? "BIN" : item.ext );
+
+	ph = kapi->createProcess( plugin );
+    }
+    
+    Loader *loader  = (Loader *) ph.api;
+
+    if( loader ){
+	
+	if( itemId == selection ){
+	    DIRECT::setPixel(220-1, 176-1, 0);
+	    if( !loader->drawScreenshot || !loader->drawScreenshot( largeBuf+1, 0, 90 ) ){
+		fillRect(0,0, width,90, hlcolor);
+
+		cursor_x = 110;
+		cursor_y = 50;
+		drawcolor = api.lblColor;
+
+		char *ch = namep;
+		while( *ch++ )
+		    cursor_x -= font[0]>>1;
+	
+		if( item.isDir ){
+		    print("[");
+		    print(namep);
+		    print("]");
+		}else{
+		    print(namep);
+		}
+	    }
+	}
+	
+	if( loader->drawIconDirect ){
+	    item.isIconLoaded = loader->drawIconDirect(
+		largeBuf+1,
+		36,
+		x, y
+		);
+	}
+	
+	if( loader->getIcon && !item.isIconLoaded ){
+	    uint8_t buf[36*(36>>1)];
+	    item.isIconLoaded = loader->getIcon(largeBuf+1, buf, 36);
+	    if( item.isIconLoaded ){
+		drawBitmap( x, y, 36, 36, buf );
+	    }
+	}
+
+	if( !item.isIconLoaded ){
+	    fillRect( x, y, 36, 36, 0 );
+	    item.isIconValid = false;
+	}
+	
+    }else if( ph.state == ProcessState::error ){
+	item.isIconValid = false;
+    }else{
+	forceDraw = true;
+    }
+}
+
 int32_t fileCount, fileIndex;
-int32_t selection;
 
 int prev( int i ){
     i--;
@@ -170,91 +215,53 @@ bool stopped(){
 
 bool draw( Kernel *kapi ){
     bool ret = stopped();
+    int c;
 
     if( ret && !forceDraw )
 	return false;
-    
+
+    drawRect( x-1, y-1, 37, 37, api.clearColor );
+    x = tx;
+    y = ty;
+
     forceDraw = false;
 
-    fillRect( 0, 0, width, height, api.clearColor );
-
-    if( x < tx ) x++;
-    else if( x > tx ) x--;
-    if( y < ty ) y++;
-    else if( y > ty ) y--;
+    c = fileIndex;
+    for( int i=0; i<selection; ++i, c=next(c) );
     
-    fillRect(
-	x,  y,
-	26, 26,
-	hlcolor++
-	);
+    Item &sel = items[selection];
+    if( !ret )
+	sel.off = ~0;
+    sel.setOffset(  c);
+    renderItem( selection );
+
+    if( forceDraw )
+	return true;
     
-    for( int i=0, c=fileIndex; i<maxitem; ++i, c=next(c) ){
-	Item &item = items[i];
-	int col = i&3, row = i>>2;	
-	
-	item.load( c );
+    c=fileIndex;
+    for( int i=0; i<maxitem; ++i, c=next(c) ){
+	if( i == selection )
+	    continue;
 
-	if( item.isIconLoaded ){
-	    
-	    drawBitmap(
-		col*26+api.itemOffsetX,
-		row*26+api.itemOffsetY,
-		24, 24, item.icon
-		);
-	    
-	}else{
-	    
-	    fillRect(
-		col*26+api.itemOffsetX,
-		row*26+api.itemOffsetY,
-		24, 24,
-		0
-		);
-
-	}
-	
+	items[i].setOffset( c );
+	renderItem(i);	
     }
-
-    lcdRefresh();
-
-    if( !ret ){
-
-	if( stopped() || forceDraw ){
-
-	    Item &item = items[selection];
-
-	    cursor_x = 110;
-	    cursor_y = 12;
-	    drawcolor = api.lblColor;
-
-	    char *c = item.name;
-	    while( *c++ )
-		cursor_x -= font[0]>>1;
-	
-	    if( item.isDir ){
-		print("[");
-		print(item.name);
-		print("]");
-	    }else{
-		print(item.name);
-	    }
 	    
-	    DIRECT::setPixel(220-1, 176-1, 0);
-	
+    if( !forceDraw ){
+	fadeBacklight(true);
+	for( int i=0; i<100; ++i ){
+	    drawRect( x-1, y-1, 37, 37, hlcolor++ );
+	    for( volatile int j=0; j<10000; ++j );
 	}
-
-
     }
-
-    if( !forceDraw )
-	setBacklight(true);
 
     return ret;
 }
 
 bool shiftRight;
 bool startSelection( Kernel *kapi ){
+    DIRECT::setPixel( 220-1, 176-1, 0 );
+    
     char plugin[ 40 ];
     FS.sprintf( (char *) kapi->ipcbuffer, "%s", path );
 
@@ -279,7 +286,7 @@ void empty( Kernel *kapi ){
 
 void update( Kernel *kapi ){
     
-    if( stopped() ){
+    if( stopped() && !forceDraw ){
 	
 	if( isPressedB() ){
 	    
@@ -346,8 +353,7 @@ void update( Kernel *kapi ){
 
 	}
 	
-	tx = (selection&0x3) * 26 + api.itemOffsetX - 1;
-	ty = (selection>>2) * 26 + api.itemOffsetY - 1;
+	getXY( selection, tx, ty );
 	
     }
 
@@ -387,7 +393,7 @@ void initdir(){
     fileCount = 0;
 
     if( fp && d ){
-	char *buf = (char *) screenbuffer;
+	char *buf = largeBuf;
 	uint32_t bufPos = 0, pathLen = strlen(path)+2, fileLen;
 
 	FS.fclose(fp);
@@ -399,39 +405,34 @@ void initdir(){
 
 	    fileLen = pathLen + strlen(e->d_name);
 
-	    if( bufPos + fileLen >= sizeof(screenbuffer) ){
+	    if( bufPos + fileLen >= sizeof(largeBuf) ){
 		flushDirIndex( buf, bufPos );
 		bufPos = 0;
 	    }
-	    
-	    {
 
-		if( e->d_type & DT_ARC ){
+	    if( e->d_type & DT_ARC ){
 			
-		    char ext[4], tmp[30];
-		    getExtension( ext, e->d_name );
+		char ext[4], tmp[30];
+		getExtension( ext, e->d_name );
 
-		    FS.sprintf( tmp, ".loader/loaders/%s.pop", ext );
+		FS.sprintf( tmp, ".loader/loaders/%s.pop", ext );
 
-		    FILE *f = FS.fopen( tmp, "r" );
-		    if( f ) FS.fclose(f);
-		    else continue;
+		FILE *f = FS.fopen( tmp, "r" );
+		if( f ) FS.fclose(f);
+		else continue;
 			
-		    buf[bufPos++] = 0;
+		buf[bufPos++] = 0;
 			
-		}else if( !(e->d_type & DT_DIR) ){
-		    continue;
-		}else{
-		    buf[bufPos++] = 1;
-		}
-
-		fileCount++;
-		    
-		FS.sprintf( buf+bufPos, "%s/%s", path, e->d_name );
-		bufPos += fileLen;
-		    
+	    }else if( !(e->d_type & DT_DIR) ){
+		continue;
+	    }else{
+		buf[bufPos++] = 1;
 	    }
-		
+
+	    fileCount++;
+		    
+	    FS.sprintf( buf+bufPos, "%s/%s", path, e->d_name );
+	    bufPos += fileLen;
 	}
 
 	flushDirIndex( buf, bufPos );
@@ -441,9 +442,10 @@ void initdir(){
     FS.fclose(fp);
     FS.closedir(d);
 
+    fillRect(0,0,width,height,api.clearColor);
+    
     if( fileCount == 0 ){
 	api.run = empty;
-	fillRect(0,0,width,height,api.clearColor);
 	lcdRefresh();
 	cursor_x = 20;
 	cursor_y = 40;
@@ -453,8 +455,6 @@ void initdir(){
 	api.run = update;
 	selection = 0;
 	fileIndex = 0;
-	x = (selection&0x3) * 26 + api.itemOffsetX - 1;
-	y = (selection>>2) * 26 + api.itemOffsetY - 1;
 	for( uint32_t i=0; i<maxitem; ++i )
 	    items[i].off = ~0;
 	forceDraw = true;
@@ -462,29 +462,29 @@ void initdir(){
 
 }
 
-    void init( Kernel *kapi ){
-	::kapi = kapi;
-	path[0] = 0;
-	font = fontTIC806x6;
-	cursor_x = 0;
-	cursor_y = 10;
-	drawcolor = 7;
-	x = -1;
-	initdir();
-    }
+void init( Kernel *kapi ){
+    ::kapi = kapi;
+    path[0] = 0;
+    font = fontTIC806x6;
+    cursor_x = 0;
+    cursor_y = 10;
+    drawcolor = 7;
+    x = -1;
+    initdir();
+}
 
-    namespace NAVIGATOR {
+namespace NAVIGATOR {
     
-	API api = {
-	    init, 0, 0,
+    API api = {
+	init, 0, 0,
     
-	    0, // clearColor
-	    7,
+	0, // clearColor
+	7,
     
-	    5, 4, 2, 36, // itemStrideX, itemOffsetX, itemStrideY, itemOffsetY
+	42, 6, 42, 95, // itemStrideX, itemOffsetX, itemStrideY, itemOffsetY
 
-	    -5, -5, // moveX, moveY
+	-5, -5, // moveX, moveY
     
-	};
+    };
 
-    }
+}

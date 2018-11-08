@@ -3,7 +3,7 @@
 
 Loader api = {
     nullptr, 0, 0,
-    getIcon, activate
+    getIcon, drawScreenshot, drawIconDirect, activate
 };
 
 extern "C" {

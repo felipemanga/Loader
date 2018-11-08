@@ -1,9 +1,21 @@
 
 char *buffer;
-uint32_t bufwidth=24, bufheight=24;
+uint32_t bufwidth, bufheight;
 
-void initIcon( char *buf ){
+void initIcon( char *buf, uint32_t size ){
     buffer = buf;
+    bufwidth = bufheight = size;
+}
+
+
+void mirror( ){
+    uint32_t stride = bufwidth >> 1;
+    uint32_t y = 0;
+    for( uint32_t i=0; i<bufheight; i++, y += stride ){
+	for( uint32_t x=0; x < (stride>>1); x++ ){
+	    buffer[y + stride - 1 - x] = (buffer[y + x]>>4) | (buffer[y + x]<<4);
+	}
+    }
 }
 
 void plot( uint32_t x, uint32_t y, uint32_t color ){
