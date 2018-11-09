@@ -112,3 +112,36 @@ int CopyPageToFlash (uint32_t address, uint8_t* data, uint32_t byteCount ) {
     return 0; /*succesful write*/
 
 }
+
+void writeEEPROM( uint16_t* eeAddress, uint8_t* buffAddress, uint32_t byteCount )
+{
+	unsigned int command[5], result[4];
+
+	command[0] = 61;
+	command[1] = (uint32_t) eeAddress;
+	command[2] = (uint32_t) buffAddress;
+	command[3] = byteCount;
+	command[4] = SystemCoreClock1000;
+
+	/* Invoke IAP call...*/
+	iap_entry(command, result);
+
+	while( 0 != result[0] ); //Trap error
+
+}
+
+void readEEPROM( uint16_t* eeAddress, uint8_t* buffAddress, uint32_t byteCount )
+{
+	unsigned int command[5], result[4];
+
+	command[0] = 62;
+	command[1] = (uint32_t) eeAddress;
+	command[2] = (uint32_t) buffAddress;
+	command[3] = byteCount;
+	command[4] = SystemCoreClock1000;
+
+	/* Invoke IAP call...*/
+  	iap_entry( command, result);
+	while( 0 != result[0] ); //Trap error
+
+}

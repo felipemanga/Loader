@@ -3,6 +3,8 @@
 #include "iap.h"
 #include "kernel.h"
 
+#define EESETTINGS_SKIPINTRO	    4020 // 0xFB4 Show Logo (0-Yes, 1-No, 2-Ye
+
 #define BAD_PTR ((void *) ~0)
 #define MAX_PID 8
 #define BAD_PID 0xFF
@@ -286,8 +288,12 @@ uint32_t loadPOP( const char *fileName, uint32_t parentPID ){
 	return BAD_PID;
     }
 
-    if( targetAddr == 0 )
+    if( targetAddr == 0 ){
+	uint8_t introFlag = 3;
+	writeEEPROM((uint16_t *)EESETTINGS_SKIPINTRO, &introFlag, 1);
+	
 	*((uint32_t*)0xE000ED0C) = 0x05FA0004; //issue system reset
+    }
     
     if( targetAddr < 0x10000000 ){
 	DBG(18);
