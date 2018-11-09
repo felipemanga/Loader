@@ -43,7 +43,7 @@ inline int m_Spiwrite( int value ){
 }
 
 
-SDFileSystem::SDFileSystem(PinName mosi, PinName miso, PinName sclk, PinName cs, const char* name, PinName cd, SwitchType cdtype, int hz) : FATFileSystem(name), m_Spi(mosi, miso, sclk), m_Cs(cs, 1), m_Cd(cd), m_FREQ(hz)
+SDFileSystem::SDFileSystem(PinName mosi, PinName miso, PinName sclk, PinName cs, const char* name, PinName cd, SwitchType cdtype, int hz) : FATFileSystem(name), m_Spi(mosi, miso, sclk), m_Cs(cs, 1)/*, m_Cd(cd)*/, m_FREQ(hz)
 {
     //Initialize the member variables
     m_CardType = CARD_NONE;
@@ -59,7 +59,7 @@ SDFileSystem::SDFileSystem(PinName mosi, PinName miso, PinName sclk, PinName cs,
 
     //Set speed of SPI bus!!!! Jonne - this was totally missing!
     m_Spi.frequency(m_FREQ);
-
+/*
     //Configure the card detect pin
     if (cdtype == SWITCH_POS_NO) {
         m_Cd.mode(PullDown);
@@ -78,8 +78,9 @@ SDFileSystem::SDFileSystem(PinName mosi, PinName miso, PinName sclk, PinName cs,
         m_CdAssert = 1;
         m_Cd.fall(this, &SDFileSystem::onCardRemoval);
     } else {
+*/
         m_CdAssert = -1;
-    }
+//    }
 }
 
 SDFileSystem::CardType SDFileSystem::card_type()
@@ -426,7 +427,7 @@ void SDFileSystem::onCardRemoval()
 inline void SDFileSystem::checkSocket()
 {
     //Use the card detect switch (if available) to determine if the socket is occupied
-    if (m_CdAssert == -1 || m_Cd == m_CdAssert) {
+    if (m_CdAssert == -1 /* || m_Cd == m_CdAssert */ ) {
         //The socket is occupied, clear the STA_NODISK flag
         m_Status &= ~STA_NODISK;
     } else {

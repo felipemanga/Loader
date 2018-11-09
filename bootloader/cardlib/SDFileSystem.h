@@ -172,7 +172,7 @@ private:
     Timer m_Timer;
     SPI m_Spi;
     DigitalOut m_Cs;
-    InterruptIn m_Cd;
+    // InterruptIn m_Cd;
     int m_CdAssert;
     const int m_FREQ;
     SDFileSystem::CardType m_CardType;
