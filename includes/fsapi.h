@@ -37,6 +37,9 @@ struct dirent {
 #define DT_MASK 0x3F    /* Mask of defined bits */
 
 struct FSAPI {
+    bool (* const fs_delete)( const char *filename );
+    bool (* const fs_move)( const char *filename, const char *targetName );
+    bool (* const fs_mkdir)( const char *filename );
     int (* const sprintf)( char * str, const char * format, ... );
     FILE *(* const fopen)( const char *file, const char *mode );
     int (* const fclose)(FILE *);

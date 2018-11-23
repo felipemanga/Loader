@@ -77,11 +77,29 @@ int fs_closedir( DIR *d ){
 
 // feof
 int fs_feof( FILE *fp ){
-    return 0;
+    return ((FATFileHandle *) fp)->flen() == ((FATFileHandle *) fp)->lseek(0, SEEK_CUR);
 }
+
+bool fs_delete( const char *filename ){
+    return sdfs->remove( filename ) == 0;
+}
+
+bool fs_move( const char *filename, const char *targetName ){
+    return sdfs->rename( filename, targetName ) == 0;
+}
+
+bool fs_mkdir( const char *filename ){
+    return sdfs->mkdir( filename, 0 );
+}
+
+
 
 extern "C" __attribute__ ((section(".bootable")))
 FSAPI const boot = {
+    fs_delete,
+    fs_move,
+    fs_mkdir,
+    
     sprintf,
 
     fs_fopen,

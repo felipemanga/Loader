@@ -63,11 +63,18 @@ bool drawScreenshot(
     if( offset )
 	FS.fseek( f, sizeof(line)*offset, SEEK_CUR );
 
+    bool prevstate = true;
+
     while( lineCount-- ){
 	FS.fread( line, 2, 220, f );
 	for( uint32_t x=0; x<220; ++x ){
 	    DIRECT::write_data(line[x]);
 	}
+	
+	bool state = isPressedAny();
+	if( state && !prevstate )
+	    break;
+	prevstate = state;
     }
 
     FS.fclose(f);

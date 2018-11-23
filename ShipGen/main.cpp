@@ -6,9 +6,9 @@
 #include "miniprint_impl.h"
 #include "fontTIC80.h"
 #include "backlight.h"
-#include "../ldrBIN/drawicon.h"
-#include "../ldrBIN/grammar.h"
-#include "../ldrBIN/ships.h"
+#include "../ldrDER/drawicon.h"
+#include "../ldrDER/grammar.h"
+#include "../ldrDER/ships.h"
 
 u32 prevState;
 char buf[24*12];

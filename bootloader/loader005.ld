@@ -12,8 +12,8 @@ MEMORY
 {
   /* Define each memory region */
   /* ORIGIN should be 0x39000*/
-  MFlash256 (rx) : ORIGIN = 0x39000, LENGTH = 0x40000-0x39000-17*4 /* 256K bytes */
-  BootableBlock (rx) : ORIGIN = 0x40000 - 17*4, LENGTH = 17*4
+  MFlash256 (rx) : ORIGIN = 0x39000, LENGTH = 0x40000-0x39000-20*4 /* 256K bytes */
+  BootableBlock (rx) : ORIGIN = 0x40000 - 20*4, LENGTH = 20*4
 
   Ram0_32 (rwx) : ORIGIN = 0x20004000, LENGTH = 0x800
 }

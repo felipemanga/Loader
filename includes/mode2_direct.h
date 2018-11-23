@@ -60,10 +60,11 @@ void hline( uint32_t x, uint32_t y, uint32_t w, uint32_t color ){
 
 void drawRect( int32_t x, int32_t y, uint32_t w, uint32_t h, uint32_t color ){
     if( x >= width || y >= height ) return;
+    color &= 0xF;
     vline( x, y, h, color );
     vline( x+w, y, h, color );
-    hline( x, y, w, color );
-    hline( x, y+h, w, color );
+    hline( x, y, w+1, color );
+    hline( x, y+h, w+1, color );
 }
 
 

@@ -221,6 +221,7 @@ bool draw( Kernel *kapi ){
 	return false;
 
     drawRect( x-1, y-1, 37, 37, api.clearColor );
+    drawRect( x-2, y-2, 39, 39, api.clearColor );
     x = tx;
     y = ty;
 
@@ -251,7 +252,8 @@ bool draw( Kernel *kapi ){
 	fadeBacklight(true);
 	for( int i=0; i<100; ++i ){
 	    drawRect( x-1, y-1, 37, 37, hlcolor++ );
-	    for( volatile int j=0; j<10000; ++j );
+	    drawRect( x-2, y-2, 39, 39, hlcolor++ );
+	    for( volatile int j=0; j<5000; ++j );
 	}
     }
 
@@ -293,6 +295,7 @@ void update( Kernel *kapi ){
 	    while( isPressedB() );
 
 	    if( !popPath() ){
+		DIRECT::setPixel(220-1, 176-1, 0);
 		kapi->createProcess(".loader/desktop.pop");
 		return;
 	    }else{

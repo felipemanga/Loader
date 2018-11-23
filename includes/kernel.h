@@ -54,3 +54,12 @@ extern Kernel *kapi;
 #define isPressedDown()     ((volatile uint8_t *) 0xA0000020)[3]
 #define isPressedLeft()     ((volatile uint8_t *) 0xA0000020)[25]
 #define isPressedRight()    ((volatile uint8_t *) 0xA0000020)[7]
+#define isPressedAny() !!(				\
+	isPressedA() ||					\
+	isPressedB() ||					\
+	isPressedC() ||					\
+	isPressedUp() ||				\
+	isPressedDown() ||				\
+	isPressedLeft() ||				\
+	isPressedRight()				\
+)    

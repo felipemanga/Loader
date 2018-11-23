@@ -2,7 +2,7 @@
 #include "../ldrDER/grammar.h"
 #include "../ldrDER/drawicon.h"
 #include "strutil.h"
-#include "ships.h"
+#include "../ldrDER/ships.h"
 
 bool getIcon( const char *fileName, uint8_t *buf, uint32_t size ){
     
